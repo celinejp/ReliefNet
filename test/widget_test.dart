@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:relief_net/main.dart';
+import 'package:relief_net/relief_net_app.dart';
 
 void main() {
   testWidgets('Homepage renders ReliefNet headline', (WidgetTester tester) async {
