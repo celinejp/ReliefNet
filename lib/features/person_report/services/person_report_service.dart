@@ -7,7 +7,13 @@ import '../models/person_group_model.dart';
 import '../models/person_report_model.dart';
 
 class PersonReportService {
-  static const String baseUrl = 'http://10.0.2.2:5001';
+  // Override at run time:
+  //   flutter run --dart-define=PERSON_API_URL=http://192.168.1.42:5001
+  // Default: laptop's Mobile-Hotspot gateway IP on Windows.
+  static const String baseUrl = String.fromEnvironment(
+    'PERSON_API_URL',
+    defaultValue: 'http://192.168.137.1:5001',
+  );
 
   static Future<bool> submitReport({
     required String reportType,

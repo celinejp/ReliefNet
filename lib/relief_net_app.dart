@@ -42,7 +42,7 @@ class ReliefNetApp extends StatelessWidget {
       title: 'ReliefNet',
       debugShowCheckedModeBanner: false,
       theme: theme,
-      home: const HomeScreen(),
+      home: const QuickActionsScreen(),
     );
   }
 }

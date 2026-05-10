@@ -56,6 +56,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       socket_io.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
+          .enableForceNew()
           .setReconnectionAttempts(5)
           .setReconnectionDelay(2000)
           .build(),

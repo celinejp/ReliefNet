@@ -8,19 +8,118 @@ import '../config/api_config.dart';
 import '../config/build_info.dart';
 import '../features/person_report/screens/person_report_form_screen.dart';
 import '../features/person_report/screens/reports_display_screen.dart';
+import '../features/volunteer/screens/donation_form_screen.dart';
+import '../features/volunteer/screens/volunteer_dashboard_screen.dart';
+import '../features/volunteer/screens/volunteer_form_screen.dart';
 import '../relief_net_app.dart';
 import 'incident_dashboard_screen.dart';
 import 'offline_alert_screen.dart';
 import 'submit_online_alert_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ReliefNet',
+                style: textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Emergency coordination for offline-first response teams.',
+                style: textTheme.titleMedium?.copyWith(
+                  color: Colors.white70,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Getting started',
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const _Bullet(
+                      icon: Icons.wifi_tethering_rounded,
+                      text: 'Connect phones to the same local hotspot or LAN.',
+                    ),
+                    const _Bullet(
+                      icon: Icons.signal_cellular_alt_rounded,
+                      text: 'Use offline hub mode when internet is unavailable.',
+                    ),
+                    const _Bullet(
+                      icon: Icons.flash_on_rounded,
+                      text: 'Tap Get started to access quick response actions.',
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const QuickActionsScreen(),
+                    ),
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Text('Get started'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const QuickActionsScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Explore quick actions'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class QuickActionsScreen extends StatefulWidget {
+  const QuickActionsScreen({super.key});
+
+  @override
+  State<QuickActionsScreen> createState() => _QuickActionsScreenState();
+}
+
+class _QuickActionsScreenState extends State<QuickActionsScreen> {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   List<ConnectivityResult> _connectivity = const [ConnectivityResult.none];
 
@@ -44,16 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool get _hasNetwork =>
       _connectivity.any((r) => r != ConnectivityResult.none);
 
-  void _stub(BuildContext context, String label) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label — coming soon.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -62,15 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final cloudDetail = _hasNetwork ? 'Online mode ready' : 'No network link';
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Quick actions'),
+        backgroundColor: ReliefNetApp.brandDeep,
+      ),
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            pinned: true,
-            backgroundColor: ReliefNetApp.brandDeep,
-            title: const Text('ReliefNet'),
-          ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 Container(
@@ -93,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Stay connected when networks fail.',
+                        'Ready to respond',
                         style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           height: 1.15,
@@ -102,8 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Hybrid offline LAN alerts and online Claude triage — '
-                        'built for HackDavis 2026.',
+                        'Choose an action to submit alerts, report missing people, or view the incident dashboard.',
                         style: textTheme.bodyMedium?.copyWith(
                           color: Colors.white.withValues(alpha: 0.82),
                           height: 1.45,
@@ -117,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const _StatusChip(
                             icon: Icons.wifi_tethering_rounded,
                             label: 'Offline hub',
-                            stateLabel: 'Not linked',
+                            stateLabel: 'Tap offline action',
                           ),
                           _StatusChip(
                             icon: Icons.cloud_outlined,
@@ -129,25 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'API ${ApiConfig.baseUrl}',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.45),
-                  ),
-                ),
-                if (kDebugMode) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    kBuildLabel.isEmpty
-                        ? 'DEBUG build — pass --dart-define=BUILD_LABEL=main@abc1234'
-                        : 'DEBUG build — $kBuildLabel',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFFFBBF24),
-                      height: 1.35,
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 18),
                 Text(
                   'Quick actions',
@@ -163,8 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconColor: colorScheme.error,
                   title: 'Submit SOS alert (online)',
                   subtitle:
-                      'Send to MongoDB + Claude when you have internet or LAN '
-                      'reachability to the API.',
+                      'Send to MongoDB + Claude when you have internet or LAN reachability to the API.',
                   enabled: _hasNetwork,
                   onTap: () {
                     Navigator.of(context).push(
@@ -219,6 +286,55 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const ReportsDisplayScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
+                  icon: Icons.people_alt_rounded,
+                  iconBackground: colorScheme.primary.withValues(alpha: 0.18),
+                  iconColor: colorScheme.primary,
+                  title: 'Volunteer Matching',
+                  subtitle: 'Register volunteers and AI-match them.',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const VolunteerDashboardScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
+                  icon: Icons.assignment_rounded,
+                  iconBackground: colorScheme.tertiary.withValues(alpha: 0.18),
+                  iconColor: colorScheme.tertiary,
+                  title: 'Request / Offer Help',
+                  subtitle:
+                      'Submit needs or offer resources and assistance.',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const VolunteerFormScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
+                  icon: Icons.volunteer_activism_rounded,
+                  iconBackground: colorScheme.secondary.withValues(alpha: 0.18),
+                  iconColor: colorScheme.secondary,
+                  title: 'Donate Supplies',
+                  subtitle: 'Submit medicine, food, clothing donations.',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const DonationFormScreen(),
                       ),
                     );
                   },

@@ -156,13 +156,13 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
         }
       }
       final position = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
       setState(() {
         _lat = position.latitude;
         _lng = position.longitude;
         _locationController.text =
             'GPS: ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}';
       });
-      if (!mounted) return;
       _showSnack('Location detected!');
     } catch (e) {
       if (!mounted) return;

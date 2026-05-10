@@ -6,7 +6,13 @@ import '../models/donation_model.dart';
 import '../models/match_model.dart';
 
 class VolunteerService {
-  static const String baseUrl = 'http://10.0.2.2:4000';
+  // Override at run time:
+  //   flutter run --dart-define=VOLUNTEER_API_URL=http://192.168.1.42:4000
+  // Default: laptop's Mobile-Hotspot gateway IP on Windows.
+  static const String baseUrl = String.fromEnvironment(
+    'VOLUNTEER_API_URL',
+    defaultValue: 'http://192.168.137.1:4000',
+  );
 
   static Future<Map<String, dynamic>> submitNeed({
     required String name,

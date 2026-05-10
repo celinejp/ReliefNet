@@ -107,15 +107,18 @@ class _PersonReportFormScreenState extends State<PersonReportFormScreen> {
       );
     }
     if (!_speechReady) {
+      if (!mounted) return;
       setState(() => _voiceError = 'Voice not available on this device.');
       return;
     }
+    if (!mounted) return;
     setState(() {
       _isListening = true;
       _voiceError = '';
     });
     await _speech.listen(
       onResult: (res) {
+        if (!mounted) return;
         setState(() => _descCtrl.text = res.recognizedWords);
       },
       listenFor: const Duration(minutes: 2),
