@@ -211,11 +211,13 @@ class _DonationsList extends StatelessWidget {
           onTap: () => _showDetailSheet(
             context,
             title: 'Donation details',
+            photoUrl: d.photoUrl,
             entries: [
               ('Donor', d.donorName),
               ('Phone', d.donorPhone),
               ('Type', d.type),
               ('Amount', d.amount),
+              ('Notes', d.notes),
               ('Location', d.locationText),
               ('Status', d.status),
             ],
@@ -385,16 +387,17 @@ Future<void> _showDetailSheet(
   BuildContext context, {
   required String title,
   required List<(String, String)> entries,
+  String photoUrl = '',
 }) async {
   await showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    isScrollControlled: true,
     builder: (context) {
       return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -404,6 +407,43 @@ Future<void> _showDetailSheet(
                     ),
               ),
               const SizedBox(height: 10),
+              if (photoUrl.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      photoUrl,
+                      width: double.infinity,
+                      height: 220,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 120,
+                        alignment: Alignment.center,
+                        color: Colors.white10,
+                        child: const Text(
+                          'Image not available',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (photoUrl.trim().isEmpty)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'No photo provided',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
               ...entries.where((e) => e.$2.trim().isNotEmpty).map(
                     (e) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -414,10 +454,11 @@ Future<void> _showDetailSheet(
                             width: 92,
                             child: Text(
                               '${e.$1}:',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              style:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                             ),
                           ),
                           Expanded(child: Text(e.$2)),

@@ -1,9 +1,25 @@
 import express from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import Donation from "../models/Donation.js";
 
 const router = express.Router();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) =>
+    cb(null, `${Date.now()}${path.extname(file.originalname)}`),
+});
+const upload = multer({ storage });
 
-router.post("/", async (req, res) => {
+router.post("/", upload.single("photo"), async (req, res) => {
   try {
     console.log("POST /api/donations — body:", req.body);
     const { donorName, donorPhone, type, amount, notes, locationText, lat, lng } = req.body;
@@ -14,6 +30,7 @@ router.post("/", async (req, res) => {
       type,
       amount: amount || "",
       notes: notes || "",
+      photoUrl: req.file ? `/uploads/${req.file.filename}` : "",
       locationText: locationText || "",
       coordinates: {
         lat: lat ? parseFloat(lat) : null,

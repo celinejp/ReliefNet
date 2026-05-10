@@ -363,65 +363,81 @@ class _InlineReport extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                report.reportType == 'looking' ? 'Looking For' : 'Found/Saw',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              Text(
-                report.reporterName,
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          if (report.descriptionText.isNotEmpty)
-            Text(report.descriptionText,
-                style: const TextStyle(fontSize: 14)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              if (report.approximateAge.isNotEmpty)
-                _Chip(text: report.approximateAge),
-              if (report.locationText.isNotEmpty)
-                _Chip(text: report.locationText),
-              if (report.lastSeenAt != null)
-                _Chip(
-                    text: DateFormat('MMM d, y · h:mm a')
-                        .format(report.lastSeenAt!)),
-              if (report.isInjured)
-                const _Chip(
-                    text: 'Injured',
-                    bg: Color(0xFFFED7D7),
-                    fg: Color(0xFF9B2C2C)),
-              if (report.isUnconscious)
-                const _Chip(
-                    text: 'Unconscious',
-                    bg: Color(0xFFFED7D7),
-                    fg: Color(0xFF9B2C2C)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (report.reporterPhone.isNotEmpty)
-            OutlinedButton.icon(
-              onPressed: () => onCopyPhone(report.reporterPhone),
-              icon: const Icon(Icons.phone, size: 16),
-              label: Text(report.reporterPhone),
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => _showReportDetails(context, report, onCopyPhone),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  report.reportType == 'looking' ? 'Looking For' : 'Found/Saw',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Text(
+                  report.reporterName,
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ],
             ),
-        ],
+            const SizedBox(height: 6),
+            if (report.descriptionText.isNotEmpty)
+              Text(report.descriptionText,
+                  style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (report.approximateAge.isNotEmpty)
+                  _Chip(text: report.approximateAge),
+                if (report.locationText.isNotEmpty)
+                  _Chip(text: report.locationText),
+                if (report.lastSeenAt != null)
+                  _Chip(
+                      text: DateFormat('MMM d, y · h:mm a')
+                          .format(report.lastSeenAt!)),
+                if (report.isInjured)
+                  const _Chip(
+                      text: 'Injured',
+                      bg: Color(0xFFFED7D7),
+                      fg: Color(0xFF9B2C2C)),
+                if (report.isUnconscious)
+                  const _Chip(
+                      text: 'Unconscious',
+                      bg: Color(0xFFFED7D7),
+                      fg: Color(0xFF9B2C2C)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (report.reporterPhone.isNotEmpty)
+                  OutlinedButton.icon(
+                    onPressed: () => onCopyPhone(report.reporterPhone),
+                    icon: const Icon(Icons.phone, size: 16),
+                    label: Text(report.reporterPhone),
+                  ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => _showReportDetails(context, report, onCopyPhone),
+                  child: const Text(
+                    'More Info',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -437,73 +453,193 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final emerColor = _emergencyColor(report.emergencyLevel);
     final emerLabel = _emergencyLabel(report.emergencyLevel);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                report.reportType == 'looking' ? 'Looking' : 'Found',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              _Badge(label: emerLabel, color: emerColor),
-            ],
-          ),
-          const SizedBox(height: 6),
-          if (report.descriptionText.isNotEmpty)
-            Text(report.descriptionText),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              if (report.approximateAge.isNotEmpty)
-                _Chip(text: report.approximateAge),
-              if (report.gender != 'unknown') _Chip(text: report.gender),
-              if (report.locationText.isNotEmpty)
-                _Chip(text: report.locationText),
-              if (report.isInjured)
-                const _Chip(
-                    text: 'Injured',
-                    bg: Color(0xFFFED7D7),
-                    fg: Color(0xFF9B2C2C)),
-              if (report.isUnconscious)
-                const _Chip(
-                    text: 'Unconscious',
-                    bg: Color(0xFFFED7D7),
-                    fg: Color(0xFF9B2C2C)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  report.reporterName,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => _showReportDetails(context, report, onCopyPhone),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  report.reportType == 'looking' ? 'Looking' : 'Found',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                _Badge(label: emerLabel, color: emerColor),
+              ],
+            ),
+            const SizedBox(height: 6),
+            if (report.descriptionText.isNotEmpty)
+              Text(report.descriptionText),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (report.approximateAge.isNotEmpty)
+                  _Chip(text: report.approximateAge),
+                if (report.gender != 'unknown') _Chip(text: report.gender),
+                if (report.locationText.isNotEmpty)
+                  _Chip(text: report.locationText),
+                if (report.isInjured)
+                  const _Chip(
+                      text: 'Injured',
+                      bg: Color(0xFFFED7D7),
+                      fg: Color(0xFF9B2C2C)),
+                if (report.isUnconscious)
+                  const _Chip(
+                      text: 'Unconscious',
+                      bg: Color(0xFFFED7D7),
+                      fg: Color(0xFF9B2C2C)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    report.reporterName,
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ),
+                if (report.reporterPhone.isNotEmpty)
+                  OutlinedButton.icon(
+                    onPressed: () => onCopyPhone(report.reporterPhone),
+                    icon: const Icon(Icons.phone, size: 16),
+                    label: Text(report.reporterPhone),
+                  ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => _showReportDetails(context, report, onCopyPhone),
+                child: const Text(
+                  'More Info',
+                  style: TextStyle(fontSize: 12),
                 ),
               ),
-              if (report.reporterPhone.isNotEmpty)
-                OutlinedButton.icon(
-                  onPressed: () => onCopyPhone(report.reporterPhone),
-                  icon: const Icon(Icons.phone, size: 16),
-                  label: Text(report.reporterPhone),
-                ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+Future<void> _showReportDetails(
+  BuildContext context,
+  PersonReport report,
+  Future<void> Function(String phone) onCopyPhone,
+) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (context) {
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                report.reportType == 'looking'
+                    ? 'Missing-person report'
+                    : 'Found-person report',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              if (report.photoUrl.trim().isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    report.photoUrl,
+                    width: double.infinity,
+                    height: 220,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 120,
+                      alignment: Alignment.center,
+                      color: Colors.white10,
+                      child: const Text(
+                        'Image not available',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  margin: const EdgeInsets.only(bottom: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'No photo provided',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              _kv('Name', report.name),
+              _kv('Age', report.approximateAge),
+              _kv('Gender', report.gender),
+              _kv('Emergency', _emergencyLabel(report.emergencyLevel)),
+              _kv('Location', report.locationText),
+              _kv('Description', report.descriptionText),
+              _kv('Reporter', report.reporterName),
+              if (report.reporterPhone.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: OutlinedButton.icon(
+                    onPressed: () => onCopyPhone(report.reporterPhone),
+                    icon: const Icon(Icons.phone, size: 16),
+                    label: Text(report.reporterPhone),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Widget _kv(String label, String value) {
+  if (value.trim().isEmpty) return const SizedBox.shrink();
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: RichText(
+      text: TextSpan(
+        style: const TextStyle(color: Colors.white),
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Badge extends StatelessWidget {

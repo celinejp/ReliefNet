@@ -10,6 +10,20 @@ import '../models/person_report_model.dart';
 class PersonReportService {
   static const String baseUrl = ApiConfig.baseUrl;
 
+  static String _absolutePhotoUrl(String raw) {
+    final v = raw.trim();
+    if (v.isEmpty) return '';
+    if (v.startsWith('http://') || v.startsWith('https://')) return v;
+    if (v.startsWith('/')) return '$baseUrl$v';
+    return '$baseUrl/$v';
+  }
+
+  static Map<String, dynamic> _normalizeReportJson(Map<String, dynamic> json) {
+    final out = Map<String, dynamic>.from(json);
+    out['photoUrl'] = _absolutePhotoUrl('${out['photoUrl'] ?? ''}');
+    return out;
+  }
+
   static Future<bool> submitReport({
     required String reportType,
     required String emergencyLevel,
@@ -78,6 +92,7 @@ class PersonReportService {
     if (list == null) return <PersonReport>[];
     return list
         .whereType<Map<String, dynamic>>()
+        .map(_normalizeReportJson)
         .map(PersonReport.fromJson)
         .toList();
   }
@@ -91,6 +106,18 @@ class PersonReportService {
     if (list == null) return <PersonGroup>[];
     return list
         .whereType<Map<String, dynamic>>()
+        .map((group) {
+          final g = Map<String, dynamic>.from(group);
+          final rawReports = g['reportIds'];
+          if (rawReports is List) {
+            g['reportIds'] = rawReports
+                .map((e) => e is Map<String, dynamic>
+                    ? _normalizeReportJson(e)
+                    : e)
+                .toList();
+          }
+          return g;
+        })
         .map(PersonGroup.fromJson)
         .toList();
   }

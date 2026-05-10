@@ -60,10 +60,20 @@ class _PersonReportFormScreenState extends State<PersonReportFormScreen>
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source, imageQuality: 80);
-    if (picked != null && mounted) {
-      setState(() => _photo = File(picked.path));
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 80);
+      if (picked != null && mounted) {
+        setState(() => _photo = File(picked.path));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open ${source.name}: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

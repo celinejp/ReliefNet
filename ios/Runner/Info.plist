@@ -34,7 +34,30 @@
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>144.202.115.202</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+			<key>192.168.137.1</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>ReliefNet uses the camera to attach a photo for missing-person reports.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ReliefNet accesses your photo library so you can upload report photos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>ReliefNet may save captured photos to your library for report evidence.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

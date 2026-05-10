@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../../config/api_config.dart';
 import '../models/need_model.dart';
@@ -8,6 +9,14 @@ import '../models/match_model.dart';
 
 class VolunteerService {
   static const String baseUrl = ApiConfig.baseUrl;
+
+  static String _absolutePhotoUrl(String raw) {
+    final v = raw.trim();
+    if (v.isEmpty) return '';
+    if (v.startsWith('http://') || v.startsWith('https://')) return v;
+    if (v.startsWith('/')) return '$baseUrl$v';
+    return '$baseUrl/$v';
+  }
 
   static Future<Map<String, dynamic>> submitNeed({
     required String name,
@@ -84,22 +93,26 @@ class VolunteerService {
     String notes = '',
     double? lat,
     double? lng,
+    File? photo,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/donations'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'donorName': donorName,
-          'donorPhone': donorPhone,
-          'type': type,
-          'amount': amount,
-          'notes': notes,
-          'locationText': locationText,
-          'lat': lat,
-          'lng': lng,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$baseUrl/api/donations'));
+      request.fields['donorName'] = donorName;
+      request.fields['donorPhone'] = donorPhone;
+      request.fields['type'] = type;
+      request.fields['amount'] = amount;
+      request.fields['notes'] = notes;
+      request.fields['locationText'] = locationText;
+      if (lat != null) request.fields['lat'] = lat.toString();
+      if (lng != null) request.fields['lng'] = lng.toString();
+      if (photo != null) {
+        request.files
+            .add(await http.MultipartFile.fromPath('photo', photo.path));
+      }
+      final streamed =
+          await request.send().timeout(const Duration(seconds: 15));
+      final response = await http.Response.fromStream(streamed);
       return jsonDecode(response.body);
     } catch (e) {
       print('submitDonation error: $e');
@@ -149,7 +162,12 @@ class VolunteerService {
       final data = jsonDecode(response.body);
       if (data['success']) {
         return (data['donations'] as List)
-            .map((d) => DonationModel.fromJson(d))
+            .map((d) {
+              final normalized = Map<String, dynamic>.from(d);
+              normalized['photoUrl'] =
+                  _absolutePhotoUrl('${normalized['photoUrl'] ?? ''}');
+              return DonationModel.fromJson(normalized);
+            })
             .toList();
       }
       return [];

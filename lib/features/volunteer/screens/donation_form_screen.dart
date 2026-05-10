@@ -52,10 +52,15 @@ class _DonationFormScreenState extends State<DonationFormScreen> {
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source);
-    if (picked != null && mounted) {
-      setState(() => _photo = File(picked.path));
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 80);
+      if (picked != null && mounted) {
+        setState(() => _photo = File(picked.path));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Could not open ${source.name}: $e');
     }
   }
 
@@ -184,6 +189,7 @@ class _DonationFormScreenState extends State<DonationFormScreen> {
       notes: _notesController.text,
       lat: _lat,
       lng: _lng,
+      photo: _photo,
     );
     if (!mounted) return;
     setState(() => _loading = false);

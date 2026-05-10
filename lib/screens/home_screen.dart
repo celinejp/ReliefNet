@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../config/auth0_config.dart';
 import '../features/person_report/screens/person_report_form_screen.dart';
 import '../features/person_report/screens/reports_display_screen.dart';
-import '../features/volunteer/screens/donation_form_screen.dart';
 import '../features/volunteer/screens/volunteer_dashboard_screen.dart';
 import '../features/volunteer/screens/volunteer_form_screen.dart';
 import '../relief_net_app.dart';
@@ -144,19 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.of(this.context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const VolunteerFormScreen(),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.volunteer_activism_rounded),
-                  title: const Text('Donate supplies'),
-                  subtitle: const Text('Log donation type, amount, and location.'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(this.context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const DonationFormScreen(),
                       ),
                     );
                   },

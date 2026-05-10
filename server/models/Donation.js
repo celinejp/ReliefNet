@@ -10,6 +10,7 @@ const DonationSchema = new mongoose.Schema({
   },
   amount: { type: String, default: "" },
   notes: { type: String, default: "" },
+  photoUrl: { type: String, default: "" },
   locationText: { type: String, default: "" },
   coordinates: {
     lat: { type: Number, default: null },

@@ -67,13 +67,18 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source);
-    if (picked != null && mounted) {
-      setState(() {
-        _photo = File(picked.path);
-        _photoPath = picked.path;
-      });
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 80);
+      if (picked != null && mounted) {
+        setState(() {
+          _photo = File(picked.path);
+          _photoPath = picked.path;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Could not open ${source.name}: $e');
     }
   }
 
