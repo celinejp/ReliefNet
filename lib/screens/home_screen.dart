@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
 import '../config/build_info.dart';
+import '../features/person_report/screens/person_report_form_screen.dart';
+import '../features/person_report/screens/reports_display_screen.dart';
 import '../relief_net_app.dart';
 import 'incident_dashboard_screen.dart';
 import 'offline_alert_screen.dart';
@@ -196,7 +198,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: 'Report missing person',
                   subtitle: 'Structured details for duplicate matching.',
                   enabled: true,
-                  onTap: () => _stub(context, 'Missing person report'),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PersonReportFormScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
+                  icon: Icons.groups_rounded,
+                  iconBackground: colorScheme.tertiary.withValues(alpha: 0.18),
+                  iconColor: colorScheme.tertiary,
+                  title: 'View person reports',
+                  subtitle:
+                      'Browse matches and unmatched reports with AI grouping.',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ReportsDisplayScreen(),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 _ActionTile(
