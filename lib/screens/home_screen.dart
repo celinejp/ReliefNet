@@ -230,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
+          SliverAppBar(
             pinned: true,
             backgroundColor: ReliefNetApp.brandDeep,
             actions: [
