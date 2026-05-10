@@ -26,6 +26,14 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   String _status = 'Disconnected';
   String _connectionType = 'unknown';
+  bool _disposing = false;
+
+  bool get _canUpdateUi => mounted && !_disposing;
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_canUpdateUi) return;
+    setState(fn);
+  }
 
   @override
   void initState() {
@@ -41,10 +49,10 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
     _connectivitySub =
         Connectivity().onConnectivityChanged.listen((statuses) {
-      if (!mounted) return;
+      if (!_canUpdateUi) return;
       final first =
           statuses.isEmpty ? ConnectivityResult.none : statuses.first;
-      setState(() {
+      _safeSetState(() {
         _connectionType = first.toString().split('.').last;
       });
     });
@@ -53,6 +61,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
 
   @override
   void dispose() {
+    _disposing = true;
     _connectivitySub?.cancel();
     _socket?.dispose();
     _nameController.dispose();
@@ -76,32 +85,32 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     );
 
     _socket?.onConnect((_) {
-      if (!mounted) return;
-      setState(() {
+      if (!_canUpdateUi) return;
+      _safeSetState(() {
         _status = 'Connected';
       });
       _socket?.emit('subscribe', {'client': 'reliefnet-app'});
     });
 
     _socket?.onDisconnect((_) {
-      if (!mounted) return;
-      setState(() {
+      if (!_canUpdateUi) return;
+      _safeSetState(() {
         _status = 'Disconnected';
       });
     });
 
     _socket?.onConnectError((data) {
-      if (!mounted) return;
-      setState(() {
+      if (!_canUpdateUi) return;
+      _safeSetState(() {
         _status = 'Connect error';
       });
       _showSnackbar('Connection failed. Check laptop IP and hotspot network.');
     });
 
     _socket?.on('alerts', (data) {
-      if (!mounted) return;
+      if (!_canUpdateUi) return;
       if (data is List) {
-        setState(() {
+        _safeSetState(() {
           _alerts.clear();
           _alerts.addAll(data.cast<Map<String, dynamic>>());
         });
@@ -109,17 +118,17 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.on('alert-received', (data) {
-      if (!mounted) return;
+      if (!_canUpdateUi) return;
       if (data is Map) {
-        setState(() {
+        _safeSetState(() {
           _alerts.insert(0, Map<String, dynamic>.from(data));
         });
       }
     });
 
     _socket?.connect();
-    if (!mounted) return;
-    setState(() {
+    if (!_canUpdateUi) return;
+    _safeSetState(() {
       _status = 'Connecting';
     });
   }

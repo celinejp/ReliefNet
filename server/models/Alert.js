@@ -45,5 +45,16 @@ const alertSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Enforce idempotent offline syncs: same non-empty clientAlertId cannot be inserted twice.
+alertSchema.index(
+  { clientAlertId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      clientAlertId: { $type: "string", $ne: "" },
+    },
+  },
+);
+
 export const Alert =
   mongoose.models.Alert || mongoose.model("Alert", alertSchema);

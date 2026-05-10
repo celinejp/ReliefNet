@@ -27,16 +27,16 @@ class LocalAlertStore {
   Future<List<UnifiedAlert>> _readList(String key) async {
     final p = await SharedPreferences.getInstance();
     final raw = p.getString(key);
-    if (raw == null || raw.isEmpty) return const [];
+    if (raw == null || raw.isEmpty) return [];
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return const [];
+      if (decoded is! List) return [];
       return decoded
           .whereType<Map>()
           .map((e) => UnifiedAlert.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (_) {
-      return const [];
+      return [];
     }
   }
 

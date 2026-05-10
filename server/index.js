@@ -2,6 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
+import crypto from "node:crypto";
 import { Alert } from "./models/Alert.js";
 import { categorizeIncident } from "./services/claudeCategorize.js";
 import {
@@ -218,6 +219,29 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
     }
 
     const now = new Date();
+    const makeFallbackClientAlertId = ({
+      message,
+      location,
+      userId,
+      userEmail,
+      createdAt,
+    }) => {
+      const tsSec = Math.floor(new Date(createdAt || now).getTime() / 1000);
+      const canonical = [
+        String(message || "").trim().toLowerCase(),
+        String(location || "").trim().toLowerCase(),
+        String(userId || "").trim().toLowerCase(),
+        String(userEmail || "").trim().toLowerCase(),
+        String(tsSec),
+      ].join("|");
+      const digest = crypto
+        .createHash("sha1")
+        .update(canonical)
+        .digest("hex")
+        .slice(0, 16);
+      return `sync_${digest}`;
+    };
+
     const docs = alerts
       .map((raw) => {
         const message =
@@ -231,8 +255,17 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
           typeof raw?.userEmail === "string" ? raw.userEmail.trim() : "";
         const createdAtRaw = new Date(raw?.createdAt || now);
         const createdAt = Number.isNaN(createdAtRaw.getTime()) ? now : createdAtRaw;
-        const clientAlertId =
+        const providedClientAlertId =
           typeof raw?.clientAlertId === "string" ? raw.clientAlertId.trim() : "";
+        const clientAlertId =
+          providedClientAlertId ||
+          makeFallbackClientAlertId({
+            message,
+            location,
+            userId: req.authUser?.sub || userIdRaw || "",
+            userEmail: req.authUser?.email || userEmailRaw || "",
+            createdAt,
+          });
         const loggedIn = Boolean(req.authUser?.sub || userIdRaw);
         return {
           rawMessage: message,
@@ -271,39 +304,34 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
 
     const result = [];
     for (const doc of docs) {
-      if (doc.clientAlertId) {
-        // Idempotent sync: same clientAlertId updates existing instead of creating duplicates.
-        const updated = await Alert.findOneAndUpdate(
-          { clientAlertId: doc.clientAlertId },
-          {
-            $setOnInsert: {
-              rawMessage: doc.rawMessage,
-              auth0UserId: doc.auth0UserId,
-              clientAlertId: doc.clientAlertId,
-              userEmail: doc.userEmail,
-              guestMode: doc.guestMode,
-              location: doc.location,
-              mode: "offline",
-              source: "offline_hub",
-              createdAt: doc.createdAt,
-            },
-            $set: {
-              severity: doc.severity,
-              category: doc.category,
-              summary: doc.summary,
-              processingStatus: doc.processingStatus,
-              aiError: doc.aiError,
-              syncStatus: "synced",
-              updatedAt: new Date(),
-            },
+      // Idempotent sync: same clientAlertId updates existing instead of creating duplicates.
+      const updated = await Alert.findOneAndUpdate(
+        { clientAlertId: doc.clientAlertId },
+        {
+          $setOnInsert: {
+            rawMessage: doc.rawMessage,
+            auth0UserId: doc.auth0UserId,
+            clientAlertId: doc.clientAlertId,
+            userEmail: doc.userEmail,
+            guestMode: doc.guestMode,
+            location: doc.location,
+            mode: "offline",
+            source: "offline_hub",
+            createdAt: doc.createdAt,
           },
-          { upsert: true, new: true },
-        ).lean();
-        result.push(updated);
-      } else {
-        const created = await Alert.create(doc);
-        result.push(created.toObject());
-      }
+          $set: {
+            severity: doc.severity,
+            category: doc.category,
+            summary: doc.summary,
+            processingStatus: doc.processingStatus,
+            aiError: doc.aiError,
+            syncStatus: "synced",
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true, new: true },
+      ).lean();
+      result.push(updated);
     }
     return res.status(201).json(result);
   } catch (err) {
