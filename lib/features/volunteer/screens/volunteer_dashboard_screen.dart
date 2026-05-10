@@ -196,6 +196,13 @@ class _MatchesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Future<void> openMatches() async {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const MatchesScreen()),
+      );
+      onRefresh();
+    }
+
     if (matches.isEmpty) {
       return Center(
         child: Column(
@@ -210,12 +217,7 @@ class _MatchesList extends StatelessWidget {
                     color: Colors.white)),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                      builder: (_) => const MatchesScreen()),
-                );
-              },
+              onPressed: openMatches,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFED8936),
                 foregroundColor: Colors.white,
@@ -232,18 +234,22 @@ class _MatchesList extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
         final m = matches[i];
-        return _Card(
-          leading: m.resolved
-              ? const Color(0xFF68D391)
-              : const Color(0xFFFC8181),
-          title: '${m.need?.name ?? '?'} — ${m.volunteer?.name ?? '?'}',
-          subtitle: m.aiReason.isNotEmpty
-              ? m.aiReason.length > 80
-                  ? '${m.aiReason.substring(0, 80)}…'
-                  : m.aiReason
-              : 'Confidence: ${m.confidence}',
-          trailing: _StatusBadge(m.resolved ? 'resolved' : 'pending'),
-          detail: null,
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: openMatches,
+          child: _Card(
+            leading: m.resolved
+                ? const Color(0xFF68D391)
+                : const Color(0xFFFC8181),
+            title: '${m.need?.name ?? '?'} — ${m.volunteer?.name ?? '?'}',
+            subtitle: m.aiReason.isNotEmpty
+                ? m.aiReason.length > 80
+                    ? '${m.aiReason.substring(0, 80)}…'
+                    : m.aiReason
+                : 'Confidence: ${m.confidence}',
+            trailing: _StatusBadge(m.resolved ? 'resolved' : 'pending'),
+            detail: 'Tap to open full match actions',
+          ),
         );
       },
     );

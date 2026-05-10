@@ -219,13 +219,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                const _SectionLabel('Emergency Alerts'),
                 _ActionTile(
                   icon: Icons.emergency_rounded,
                   iconBackground: colorScheme.error.withValues(alpha: 0.18),
                   iconColor: colorScheme.error,
                   title: 'Submit SOS alert (online)',
-                  subtitle:
-                      'Send to MongoDB + Claude when you have internet or LAN reachability to the API.',
+                  subtitle: 'Send directly to cloud triage and responders.',
                   enabled: _hasNetwork,
                   onTap: () {
                     Navigator.of(context).push(
@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconBackground: colorScheme.error.withValues(alpha: 0.18),
                   iconColor: colorScheme.error,
                   title: 'Submit SOS alert offline',
-                  subtitle: 'LAN-only - connects to laptop hub over hotspot.',
+                  subtitle: 'Use laptop hub when internet is unavailable.',
                   enabled: true,
                   onTap: () {
                     Navigator.of(context).push(
@@ -257,8 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconBackground: colorScheme.primary.withValues(alpha: 0.18),
                   iconColor: colorScheme.primary,
                   title: 'All alerts feed',
-                  subtitle:
-                      'Unified view: cloud alerts, offline hub alerts, and local cache.',
+                  subtitle: 'Unified stream of online + offline alerts.',
                   enabled: true,
                   onTap: () {
                     Navigator.of(context).push(
@@ -269,12 +268,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
+                const _SectionLabel('People & Incident Management'),
                 _ActionTile(
                   icon: Icons.person_search_rounded,
                   iconBackground: colorScheme.primary.withValues(alpha: 0.18),
                   iconColor: colorScheme.primary,
                   title: 'Report missing person',
-                  subtitle: 'Structured details for duplicate matching.',
+                  subtitle: 'Capture a structured missing-person report.',
                   enabled: true,
                   onTap: () {
                     Navigator.of(context).push(
@@ -290,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconBackground: colorScheme.tertiary.withValues(alpha: 0.18),
                   iconColor: colorScheme.tertiary,
                   title: 'View person reports',
-                  subtitle: 'Browse AI-grouped reports and matches.',
+                  subtitle: 'Browse grouped reports and possible matches.',
                   enabled: true,
                   onTap: () {
                     Navigator.of(context).push(
@@ -322,12 +322,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
+                const _SectionLabel('Volunteer & Resource Workflow'),
                 _ActionTile(
                   icon: Icons.people_alt_rounded,
                   iconBackground: colorScheme.primary.withValues(alpha: 0.18),
                   iconColor: colorScheme.primary,
                   title: 'Volunteer Matching',
-                  subtitle: 'Register volunteers and AI-match them.',
+                  subtitle: 'Track needs, volunteers, and AI matches.',
                   enabled: true,
                   onTap: () {
                     Navigator.of(context).push(
@@ -343,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconBackground: colorScheme.tertiary.withValues(alpha: 0.18),
                   iconColor: colorScheme.tertiary,
                   title: 'Request / Offer Help',
-                  subtitle: 'Submit needs or offer resources and assistance.',
+                  subtitle: 'Create need requests or volunteer offers.',
                   enabled: true,
                   onTap: () {
                     Navigator.of(context).push(
@@ -359,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconBackground: colorScheme.secondary.withValues(alpha: 0.18),
                   iconColor: colorScheme.secondary,
                   title: 'Donate Supplies',
-                  subtitle: 'Submit medicine, food, clothing donations.',
+                  subtitle: 'Log supply donations for coordination.',
                   enabled: true,
                   onTap: () {
                     Navigator.of(context).push(
@@ -371,26 +372,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 28),
                 Text(
-                  'How ReliefNet fits your drill',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                  'Suggested flow: Alert -> Triage -> People reports -> Volunteer matching',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    height: 1.4,
                   ),
-                ),
-                const SizedBox(height: 12),
-                const _Bullet(
-                  icon: Icons.router_rounded,
-                  text:
-                      'Phones join the same hotspot; the laptop hub carries alerts when cellular drops.',
-                ),
-                const _Bullet(
-                  icon: Icons.psychology_alt_outlined,
-                  text:
-                      'When online, Claude classifies severity and cleans noisy reports.',
-                ),
-                const _Bullet(
-                  icon: Icons.merge_rounded,
-                  text:
-                      'AI grouping surfaces duplicate missing-person sightings.',
                 ),
               ]),
             ),
@@ -541,31 +527,21 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
-class _Bullet extends StatelessWidget {
-  const _Bullet({required this.icon, required this.text});
-
-  final IconData icon;
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Theme.of(context).colorScheme.secondary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.45,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
-          ),
-        ],
       ),
     );
   }
