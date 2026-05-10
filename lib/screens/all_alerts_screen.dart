@@ -39,6 +39,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   String _hubStatus = 'Disconnected';
   String? _lastError;
   bool _disposing = false;
+  bool _syncInFlight = false;
 
   bool get _online =>
       _connectivity.any((e) => e != ConnectivityResult.none);
@@ -174,29 +175,10 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     _cachedAlerts = await _store.readUnifiedCache();
     _pendingHubAlerts = await _store.readPendingHubAlerts();
 
-    if (_online && _pendingHubAlerts.isNotEmpty) {
-      try {
-        await _api.syncAlerts(
-          _pendingHubAlerts
-              .map(
-                (e) => {
-                  'clientAlertId': e.id,
-                  'message': e.message,
-                  'location': e.location ?? '',
-                  'userId': e.userId ?? '',
-                  'userEmail': e.userEmail ?? '',
-                  'createdAt': e.createdAt.toIso8601String(),
-                  'source': 'offline_hub',
-                  'mode': 'offline',
-                },
-              )
-              .toList(),
-        );
-        _pendingHubAlerts = const [];
-        await _store.writePendingHubAlerts(const []);
-      } catch (e) {
-        _lastError = '$e';
-      }
+    // Do not block first render on sync; background sync makes feed feel faster.
+    if (_online && _pendingHubAlerts.isNotEmpty && !_syncInFlight) {
+      _syncInFlight = true;
+      unawaited(_syncPendingAndRefresh());
     }
 
     if (_online) {
@@ -231,6 +213,41 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
 
     if (!_canUpdateUi) return;
     _safeSetState(() => _loading = false);
+  }
+
+  Future<void> _syncPendingAndRefresh() async {
+    try {
+      final snapshot = List<UnifiedAlert>.from(_pendingHubAlerts);
+      if (snapshot.isEmpty || !_online) return;
+      await _api.syncAlerts(
+        snapshot
+            .map(
+              (e) => {
+                'clientAlertId': e.id,
+                'message': e.message,
+                'location': e.location ?? '',
+                'userId': e.userId ?? '',
+                'userEmail': e.userEmail ?? '',
+                'createdAt': e.createdAt.toIso8601String(),
+                'source': 'offline_hub',
+                'mode': 'offline',
+              },
+            )
+            .toList(),
+      );
+      _pendingHubAlerts = const [];
+      await _store.writePendingHubAlerts(const []);
+      if (_canUpdateUi) {
+        await _refreshAll();
+      }
+    } catch (e) {
+      _lastError = '$e';
+      if (_canUpdateUi) {
+        _safeSetState(() {});
+      }
+    } finally {
+      _syncInFlight = false;
+    }
   }
 
   UnifiedAlert _fromCloud(CloudIncident c) {
