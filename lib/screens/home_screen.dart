@@ -181,22 +181,43 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverAppBar.large(
             pinned: true,
             backgroundColor: ReliefNetApp.brandDeep,
-            title: Row(
+            centerTitle: true,
+            title: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                   child: Image.asset(
                     'logo_final_relief.png',
-                    width: 30,
-                    height: 30,
+                    width: 44,
+                    height: 44,
                     fit: BoxFit.cover,
                   ),
                 ),
-                const SizedBox(width: 10),
-                const Text(
+                const SizedBox(height: 4),
+                Text(
                   'ReliefNet',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        offset: const Offset(0, 2),
+                        blurRadius: 6,
+                      ),
+                      Shadow(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .secondary
+                            .withValues(alpha: 0.28),
+                        offset: const Offset(0, 0),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -272,15 +293,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           height: 1.15,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Hybrid offline LAN alerts and online Claude triage - '
-                        'built for HackDavis 2026.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          height: 1.45,
                         ),
                       ),
                       const SizedBox(height: 18),
@@ -461,24 +473,18 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final tileColor = Theme.of(context).colorScheme.surface.withValues(
+          alpha: enabled ? 0.92 : 0.72,
+        );
 
     return Material(
-      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
+      color: tileColor,
+      shadowColor: Colors.black.withValues(alpha: 0.6),
+      elevation: enabled ? 0 : 8,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: enabled
-            ? onTap
-            : () {
-                final msg =
-                    disabledSnackText ?? 'Connect to Wi-Fi or cellular first.';
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(msg),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
+        onTap: enabled ? onTap : null,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
