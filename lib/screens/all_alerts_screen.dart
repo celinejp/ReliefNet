@@ -120,6 +120,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       await _store.writePendingHubAlerts(_pendingHubAlerts);
       if (!_canUpdateUi) return;
       _safeSetState(() {});
+      _showIncomingAlertPopup(alert);
     });
 
     _socket?.connect();
@@ -296,7 +297,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       _upsertByFingerprint(map, a);
     }
     final list = map.values.toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    list.sort(_compareByNewest);
     return list;
   }
 
@@ -344,8 +345,28 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       _upsertByFingerprint(map, i);
     }
     final values = map.values.toList();
-    values.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    values.sort(_compareByNewest);
     return values;
+  }
+
+  int _compareByNewest(UnifiedAlert a, UnifiedAlert b) {
+    final byTime = b.createdAt.compareTo(a.createdAt);
+    if (byTime != 0) return byTime;
+    return b.id.compareTo(a.id);
+  }
+
+  void _showIncomingAlertPopup(UnifiedAlert alert) {
+    if (!mounted) return;
+    final summary = alert.message.trim().isEmpty
+        ? 'New offline alert received'
+        : alert.message.trim();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('New alert: $summary'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _upsertByFingerprint(Map<String, UnifiedAlert> map, UnifiedAlert alert) {
