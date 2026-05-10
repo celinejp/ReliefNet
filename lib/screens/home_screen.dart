@@ -181,7 +181,25 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverAppBar.large(
             pinned: true,
             backgroundColor: ReliefNetApp.brandDeep,
-            title: const Text('ReliefNet'),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'logo_final_relief.png',
+                    width: 30,
+                    height: 30,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'ReliefNet',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
             actions: [
               if (Auth0Config.isConfigured)
                 PopupMenuButton<String>(
@@ -315,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.wifi_off_rounded,
                   iconBackground: colorScheme.error.withValues(alpha: 0.18),
                   iconColor: colorScheme.error,
-                  title: 'Submit SOS alert offline',
+                  title: 'Submit SOS alert (offline)',
                   subtitle: 'Use laptop hub when internet is unavailable.',
                   enabled: true,
                   onTap: () {
@@ -363,14 +381,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   subtitle: 'Needs, offers, donations, and AI matching in one place.',
                   enabled: true,
                   onTap: _openVolunteerFlowSheet,
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  'Suggested flow: Alert -> Triage -> People reports -> Volunteer matching',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.75),
-                    height: 1.4,
-                  ),
                 ),
               ]),
             ),

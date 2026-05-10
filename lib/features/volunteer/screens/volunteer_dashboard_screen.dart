@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/need_model.dart';
 import '../models/volunteer_model.dart';
-import '../models/donation_model.dart';
 import '../models/match_model.dart';
 import '../services/volunteer_service.dart';
 import 'matches_screen.dart';
@@ -27,14 +26,13 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen>
 
   List<NeedModel> _needs = [];
   List<VolunteerModel> _volunteers = [];
-  List<DonationModel> _donations = [];
   List<MatchModel> _matches = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadAll();
   }
 
@@ -49,15 +47,13 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen>
     final results = await Future.wait([
       VolunteerService.getNeeds(),
       VolunteerService.getVolunteers(),
-      VolunteerService.getDonations(),
       VolunteerService.getMatches(),
     ]);
     if (!mounted) return;
     setState(() {
       _needs = results[0] as List<NeedModel>;
       _volunteers = results[1] as List<VolunteerModel>;
-      _donations = results[2] as List<DonationModel>;
-      _matches = results[3] as List<MatchModel>;
+      _matches = results[2] as List<MatchModel>;
       _loading = false;
     });
   }
@@ -83,7 +79,6 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen>
           tabs: [
             Tab(text: 'Needs (${_needs.length})'),
             Tab(text: 'Volunteers (${_volunteers.length})'),
-            Tab(text: 'Donations (${_donations.length})'),
             Tab(text: 'Matches (${_matches.length})'),
           ],
         ),
@@ -95,7 +90,6 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen>
               children: [
                 _NeedsList(needs: _needs),
                 _VolunteersList(volunteers: _volunteers),
-                _DonationsList(donations: _donations),
                 _MatchesList(matches: _matches, onRefresh: _loadAll),
               ],
             ),
@@ -183,45 +177,6 @@ class _VolunteersList extends StatelessWidget {
               ('Location', v.locationText),
               ('Description', v.description),
               ('Status', v.status),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _DonationsList extends StatelessWidget {
-  const _DonationsList({required this.donations});
-  final List<DonationModel> donations;
-
-  @override
-  Widget build(BuildContext context) {
-    if (donations.isEmpty) return _empty('No donations recorded yet.');
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: donations.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, i) {
-        final d = donations[i];
-        return _Card(
-          leading: const Color(0xFFB794F4),
-          title: d.donorName,
-          subtitle: '${d.type} · ${d.amount}',
-          trailing: null,
-          detail: d.locationText.isNotEmpty ? d.locationText : null,
-          onTap: () => _showDetailSheet(
-            context,
-            title: 'Donation details',
-            photoUrl: d.photoUrl,
-            entries: [
-              ('Donor', d.donorName),
-              ('Phone', d.donorPhone),
-              ('Type', d.type),
-              ('Amount', d.amount),
-              ('Notes', d.notes),
-              ('Location', d.locationText),
-              ('Status', d.status),
             ],
           ),
         );
