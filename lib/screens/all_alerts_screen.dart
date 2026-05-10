@@ -38,6 +38,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   bool _loading = true;
   String _hubStatus = 'Disconnected';
   String? _lastError;
+  bool _disposing = false;
 
   bool get _online =>
       _connectivity.any((e) => e != ConnectivityResult.none);
@@ -46,11 +47,11 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   void initState() {
     super.initState();
     _connectivitySub = Connectivity().onConnectivityChanged.listen((v) async {
-      setState(() => _connectivity = v);
+      _safeSetState(() => _connectivity = v);
       await _refreshAll();
     });
     Connectivity().checkConnectivity().then((v) async {
-      setState(() => _connectivity = v);
+      _safeSetState(() => _connectivity = v);
       await _refreshAll();
     });
     _connectToHub();
@@ -58,9 +59,17 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
 
   @override
   void dispose() {
+    _disposing = true;
     _connectivitySub?.cancel();
     _socket?.dispose();
     super.dispose();
+  }
+
+  bool get _canUpdateUi => mounted && !_disposing;
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_canUpdateUi) return;
+    setState(fn);
   }
 
   void _connectToHub() {
@@ -76,19 +85,20 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     );
 
     _socket?.onConnect((_) {
-      if (!mounted) return;
-      setState(() => _hubStatus = 'Connected');
+      if (!_canUpdateUi) return;
+      _safeSetState(() => _hubStatus = 'Connected');
       _socket?.emit('subscribe', {'client': 'reliefnet-all-alerts'});
     });
     _socket?.onDisconnect((_) {
-      if (!mounted) return;
-      setState(() => _hubStatus = 'Disconnected');
+      if (!_canUpdateUi) return;
+      _safeSetState(() => _hubStatus = 'Disconnected');
     });
     _socket?.onConnectError((_) {
-      if (!mounted) return;
-      setState(() => _hubStatus = 'Connect error');
+      if (!_canUpdateUi) return;
+      _safeSetState(() => _hubStatus = 'Connect error');
     });
     _socket?.on('alerts', (data) async {
+      if (!_canUpdateUi) return;
       if (data is! List) return;
       final incoming = data
           .whereType<Map>()
@@ -96,14 +106,17 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
           .toList();
       _pendingHubAlerts = _dedupe([..._pendingHubAlerts, ...incoming]);
       await _store.writePendingHubAlerts(_pendingHubAlerts);
-      if (mounted) setState(() {});
+      if (!_canUpdateUi) return;
+      _safeSetState(() {});
     });
     _socket?.on('alert-received', (data) async {
+      if (!_canUpdateUi) return;
       if (data is! Map) return;
       final alert = _fromHubPayload(Map<String, dynamic>.from(data));
       _pendingHubAlerts = _dedupe([alert, ..._pendingHubAlerts]);
       await _store.writePendingHubAlerts(_pendingHubAlerts);
-      if (mounted) setState(() {});
+      if (!_canUpdateUi) return;
+      _safeSetState(() {});
     });
 
     _socket?.connect();
@@ -149,7 +162,8 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   }
 
   Future<void> _refreshAll() async {
-    setState(() {
+    if (!_canUpdateUi) return;
+    _safeSetState(() {
       _loading = true;
       _lastError = null;
     });
@@ -211,13 +225,12 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       _cloudAlerts = const [];
     }
 
-    if (mounted) {
-      setState(() => _loading = false);
-    }
+    if (!_canUpdateUi) return;
+    _safeSetState(() => _loading = false);
   }
 
   UnifiedAlert _fromCloud(CloudIncident c) {
-    final msg = c.summary.isNotEmpty ? c.summary : c.rawMessage;
+    final msg = c.rawMessage.trim().isNotEmpty ? c.rawMessage : c.summary;
     final created = c.createdAt ?? DateTime.now();
     return UnifiedAlert(
       id: c.id,
@@ -237,13 +250,13 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   List<UnifiedAlert> get _merged {
     final map = <String, UnifiedAlert>{};
     for (final a in _cachedAlerts) {
-      map['cache_${a.id}'] = a;
+      _upsertByFingerprint(map, a);
     }
     for (final a in _pendingHubAlerts) {
-      map[a.id] = a;
+      _upsertByFingerprint(map, a);
     }
     for (final a in _cloudAlerts) {
-      map[a.id] = a;
+      _upsertByFingerprint(map, a);
     }
     final list = map.values.toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -253,11 +266,52 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   List<UnifiedAlert> _dedupe(List<UnifiedAlert> items) {
     final map = <String, UnifiedAlert>{};
     for (final i in items) {
-      map[i.id] = i;
+      _upsertByFingerprint(map, i);
     }
     final values = map.values.toList();
     values.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return values;
+  }
+
+  void _upsertByFingerprint(Map<String, UnifiedAlert> map, UnifiedAlert alert) {
+    final key = _mergeKey(alert);
+    final existing = map[key];
+    if (existing == null || _priority(alert) > _priority(existing)) {
+      map[key] = alert;
+    }
+  }
+
+  String _mergeKey(UnifiedAlert a) {
+    final id = a.id.trim();
+    if (id.isNotEmpty && !id.startsWith('hub_')) {
+      return 'id:$id';
+    }
+    return 'fp:${_fingerprint(a)}';
+  }
+
+  int _priority(UnifiedAlert a) {
+    final sourceWeight = switch (a.source) {
+      'online_cloud' => 300,
+      'offline_hub' => 200,
+      'local_cache' => 100,
+      _ => 0,
+    };
+    final syncWeight = switch (a.syncStatus) {
+      'synced' => 30,
+      'pending' => 20,
+      'failed' => 10,
+      _ => 0,
+    };
+    return sourceWeight + syncWeight;
+  }
+
+  String _fingerprint(UnifiedAlert a) {
+    final msg = a.message.trim().toLowerCase();
+    final loc = (a.location ?? '').trim().toLowerCase();
+    final email = (a.userEmail ?? '').trim().toLowerCase();
+    final id = (a.userId ?? '').trim().toLowerCase();
+    final t = a.createdAt.toUtc().millisecondsSinceEpoch ~/ 1000;
+    return '$msg|$loc|$email|$id|$t';
   }
 
   List<UnifiedAlert> get _visible {
