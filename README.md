@@ -222,8 +222,3 @@ PORT=3000
 
 **HackDavis 2026**
 
----
-
-## License
-
-MIT License
