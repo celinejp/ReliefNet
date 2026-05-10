@@ -40,9 +40,11 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   String? _lastError;
   bool _disposing = false;
   bool _syncInFlight = false;
+  bool _apiReachable = false;
 
   bool get _online =>
       _connectivity.any((e) => e != ConnectivityResult.none);
+  bool get _cloudAvailable => _online && _apiReachable;
 
   @override
   void initState() {
@@ -175,13 +177,15 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     _cachedAlerts = await _store.readUnifiedCache();
     _pendingHubAlerts = await _store.readPendingHubAlerts();
 
+    _apiReachable = _online ? await _api.canReachServer() : false;
+
     // Do not block first render on sync; background sync makes feed feel faster.
-    if (_online && _pendingHubAlerts.isNotEmpty && !_syncInFlight) {
+    if (_cloudAvailable && _pendingHubAlerts.isNotEmpty && !_syncInFlight) {
       _syncInFlight = true;
       unawaited(_syncPendingAndRefresh());
     }
 
-    if (_online) {
+    if (_cloudAvailable) {
       try {
         final cloud = await _api.listAlerts(limit: 300);
         _cloudAlerts = cloud.map(_fromCloud).toList();
@@ -209,6 +213,10 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       }
     } else {
       _cloudAlerts = const [];
+      if (_online && !_apiReachable) {
+        _lastError =
+            'Cloud API unreachable right now. Showing offline hub + local cache.';
+      }
     }
 
     if (!_canUpdateUi) return;
@@ -218,7 +226,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   Future<void> _syncPendingAndRefresh() async {
     try {
       final snapshot = List<UnifiedAlert>.from(_pendingHubAlerts);
-      if (snapshot.isEmpty || !_online) return;
+      if (snapshot.isEmpty || !_cloudAvailable) return;
       await _api.syncAlerts(
         snapshot
             .map(
@@ -406,13 +414,15 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
             child: Row(
               children: [
                 Icon(
-                  _online ? Icons.cloud_done_rounded : Icons.wifi_off_rounded,
+                  _cloudAvailable
+                      ? Icons.cloud_done_rounded
+                      : Icons.wifi_off_rounded,
                   size: 18,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _online
+                    _cloudAvailable
                         ? 'Online mode: cloud feed + synced offline alerts.'
                         : 'Offline mode: local hub + cached alerts only.',
                     style: Theme.of(context).textTheme.labelMedium,
@@ -466,7 +476,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(16),
-                                  onTap: _online && a.source != 'local_cache'
+                                  onTap: _cloudAvailable && a.source != 'local_cache'
                                       ? () {
                                           Navigator.of(context).push(
                                             MaterialPageRoute<void>(

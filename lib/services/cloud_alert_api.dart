@@ -28,6 +28,17 @@ class CloudAlertApi {
   final String baseUrl;
   final Future<String?> Function() _bearerToken;
 
+  Future<bool> canReachServer() async {
+    try {
+      final res = await http
+          .get(_uri('/health'), headers: await _headers())
+          .timeout(const Duration(seconds: 4));
+      return res.statusCode >= 200 && res.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Uri _uri(String path, [Map<String, String>? query]) {
     final root = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
