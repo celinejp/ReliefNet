@@ -25,18 +25,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   List<ConnectivityResult> _connectivity = const [ConnectivityResult.none];
   final CloudAlertApi _api = CloudAlertApi();
   socket_io.Socket? _hubSocket;
+  Timer? _cloudHealthTimer;
   bool _cloudReady = false;
   bool _hubLinked = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _connectHubSocket();
+    _cloudHealthTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _refreshCloudStatus(_connectivity),
+    );
     Connectivity().checkConnectivity().then((v) async {
       if (!mounted) return;
       setState(() => _connectivity = v);
@@ -106,9 +112,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySub?.cancel();
     _hubSocket?.dispose();
+    _cloudHealthTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshCloudStatus(_connectivity);
+    }
   }
 
   bool get _hasNetwork =>
