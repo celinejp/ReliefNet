@@ -51,8 +51,8 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
                       Expanded(
                         child: Text(
                           incident.processingStatus == 'failed'
-                              ? 'Gemini processing failed — saved with error.'
-                              : 'Gemini triage complete.',
+                              ? 'Claude processing failed — saved with error.'
+                              : 'Claude triage complete.',
                           style: Theme.of(ctx).textTheme.bodyMedium,
                         ),
                       ),
@@ -145,7 +145,7 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Describe what is happening. Gemini will classify severity and '
+                'Describe what is happening. Claude will classify severity and '
                 'normalize your report for responders.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white.withValues(alpha: 0.78),

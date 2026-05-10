@@ -102,7 +102,7 @@ class _IncidentDashboardScreenState extends State<IncidentDashboardScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
-              'Sorted by Gemini severity, then newest.',
+              'Sorted by Claude severity, then newest.',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.45),
                   ),

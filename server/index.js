@@ -3,7 +3,7 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import { Alert } from "./models/Alert.js";
-import { categorizeIncident } from "./services/geminiCategorize.js";
+import { categorizeIncident } from "./services/claudeCategorize.js";
 
 const app = express();
 app.use(cors());
@@ -13,7 +13,7 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     mongo: mongoose.connection.readyState === 1,
-    gemini: Boolean(process.env.GEMINI_API_KEY?.trim()),
+    anthropic: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
   });
 });
 
@@ -135,7 +135,37 @@ if (!mongoUri) {
   process.exit(1);
 }
 
-await mongoose.connect(mongoUri);
+function mongoSrvHostname(uri) {
+  const m = String(uri).match(/^mongodb\+srv:\/\/[^@]+@([^/?#]+)/i);
+  return m?.[1] ?? null;
+}
+
+function printMongoConnectionHelp(uri, err) {
+  const host = mongoSrvHostname(uri);
+  const firstLine = (err?.message ?? String(err)).split("\n")[0];
+  console.error("\nMongoDB connection failed.");
+  if (host) console.error(`  SRV host in MONGODB_URI: ${host}`);
+  console.error(`  ${firstLine}`);
+  console.error(
+    [
+      "",
+      "Typical fixes for Atlas + mongoose:",
+      "  1) Atlas → Database Access: username/password must match the URI (reset DB user password if unsure).",
+      "  2) Atlas → Connect → Drivers: copy the full connection string, insert the password, paste as MONGODB_URI.",
+      "     Encode special chars in the password (e.g. @ → %40, # → %23).",
+      "  3) Atlas → Network Access: add your current public IP or 0.0.0.0/0 for local dev.",
+      "  4) If you use Node 24+, try Node 20 LTS (nvm install 20 && nvm use 20) for TLS/driver compatibility.",
+      "",
+    ].join("\n"),
+  );
+}
+
+try {
+  await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 15_000 });
+} catch (err) {
+  printMongoConnectionHelp(mongoUri, err);
+  process.exit(1);
+}
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`ReliefNet API listening on :${port}`);

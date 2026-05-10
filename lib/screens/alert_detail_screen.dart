@@ -97,7 +97,7 @@ class AlertDetailScreen extends StatelessWidget {
               if ((incident.aiError ?? '').isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Text(
-                  'Gemini processing error',
+                  'Claude processing error',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                       ),

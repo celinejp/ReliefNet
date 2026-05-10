@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
+import '../config/build_info.dart';
 import '../relief_net_app.dart';
 import 'incident_dashboard_screen.dart';
 import 'submit_online_alert_screen.dart';
@@ -98,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Hybrid offline LAN alerts and online Gemini triage — '
+                        'Hybrid offline LAN alerts and online Claude triage — '
                         'built for HackDavis 2026.',
                         style: textTheme.bodyMedium?.copyWith(
                           color: Colors.white.withValues(alpha: 0.82),
@@ -132,6 +134,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white.withValues(alpha: 0.45),
                   ),
                 ),
+                if (kDebugMode) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    kBuildLabel.isEmpty
+                        ? 'DEBUG build — pass --dart-define=BUILD_LABEL=main@abc1234'
+                        : 'DEBUG build — $kBuildLabel',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: const Color(0xFFFBBF24),
+                      height: 1.35,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Text(
                   'Quick actions',
@@ -147,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconColor: colorScheme.error,
                   title: 'Submit SOS alert (online)',
                   subtitle:
-                      'Send to MongoDB + Gemini when you have internet or LAN '
+                      'Send to MongoDB + Claude when you have internet or LAN '
                       'reachability to the API.',
                   enabled: _hasNetwork,
                   onTap: () {
@@ -200,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const _Bullet(
                   icon: Icons.psychology_alt_outlined,
                   text:
-                      'When online, Gemini classifies severity and cleans noisy reports.',
+                      'When online, Claude classifies severity and cleans noisy reports.',
                 ),
                 const _Bullet(
                   icon: Icons.merge_rounded,
