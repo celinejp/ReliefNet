@@ -122,6 +122,19 @@ class _NeedsList extends StatelessWidget {
           subtitle: n.categories.join(', '),
           trailing: _StatusBadge(n.status),
           detail: n.locationText.isNotEmpty ? n.locationText : null,
+          onTap: () => _showDetailSheet(
+            context,
+            title: 'Need details',
+            entries: [
+              ('Name', n.name),
+              ('Phone', n.phone),
+              ('Urgency', n.urgency),
+              ('Categories', n.categories.join(', ')),
+              ('Location', n.locationText),
+              ('Description', n.description),
+              ('Status', n.status),
+            ],
+          ),
         );
       },
     );
@@ -158,6 +171,18 @@ class _VolunteersList extends StatelessWidget {
           subtitle: v.categories.join(', '),
           trailing: _StatusBadge(v.status),
           detail: v.locationText.isNotEmpty ? v.locationText : null,
+          onTap: () => _showDetailSheet(
+            context,
+            title: 'Volunteer details',
+            entries: [
+              ('Name', v.name),
+              ('Phone', v.phone),
+              ('Categories', v.categories.join(', ')),
+              ('Location', v.locationText),
+              ('Description', v.description),
+              ('Status', v.status),
+            ],
+          ),
         );
       },
     );
@@ -183,6 +208,18 @@ class _DonationsList extends StatelessWidget {
           subtitle: '${d.type} · ${d.amount}',
           trailing: null,
           detail: d.locationText.isNotEmpty ? d.locationText : null,
+          onTap: () => _showDetailSheet(
+            context,
+            title: 'Donation details',
+            entries: [
+              ('Donor', d.donorName),
+              ('Phone', d.donorPhone),
+              ('Type', d.type),
+              ('Amount', d.amount),
+              ('Location', d.locationText),
+              ('Status', d.status),
+            ],
+          ),
         );
       },
     );
@@ -234,22 +271,19 @@ class _MatchesList extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
         final m = matches[i];
-        return InkWell(
-          borderRadius: BorderRadius.circular(12),
+        return _Card(
+          leading: m.resolved
+              ? const Color(0xFF68D391)
+              : const Color(0xFFFC8181),
+          title: '${m.need?.name ?? '?'} — ${m.volunteer?.name ?? '?'}',
+          subtitle: m.aiReason.isNotEmpty
+              ? m.aiReason.length > 80
+                  ? '${m.aiReason.substring(0, 80)}…'
+                  : m.aiReason
+              : 'Confidence: ${m.confidence}',
+          trailing: _StatusBadge(m.resolved ? 'resolved' : 'pending'),
+          detail: 'Tap to open full match actions',
           onTap: openMatches,
-          child: _Card(
-            leading: m.resolved
-                ? const Color(0xFF68D391)
-                : const Color(0xFFFC8181),
-            title: '${m.need?.name ?? '?'} — ${m.volunteer?.name ?? '?'}',
-            subtitle: m.aiReason.isNotEmpty
-                ? m.aiReason.length > 80
-                    ? '${m.aiReason.substring(0, 80)}…'
-                    : m.aiReason
-                : 'Confidence: ${m.confidence}',
-            trailing: _StatusBadge(m.resolved ? 'resolved' : 'pending'),
-            detail: 'Tap to open full match actions',
-          ),
         );
       },
     );
@@ -268,6 +302,7 @@ class _Card extends StatelessWidget {
     required this.subtitle,
     required this.trailing,
     required this.detail,
+    this.onTap,
   });
 
   final Color leading;
@@ -275,63 +310,127 @@ class _Card extends StatelessWidget {
   final String subtitle;
   final Widget? trailing;
   final String? detail;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _cardBg,
+    return Material(
+      color: _cardBg,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 6,
-              height: 48,
-              decoration: BoxDecoration(
-                color: leading,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _borderColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 6,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: leading,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(title,
-                            style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(title,
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white)),
+                          ),
+                          if (trailing != null) trailing!,
+                        ],
                       ),
-                      if (trailing != null) trailing!,
+                      const SizedBox(height: 3),
+                      Text(subtitle,
+                          style: const TextStyle(
+                              fontSize: 13, color: _labelColor)),
+                      if (detail != null) ...[
+                        const SizedBox(height: 4),
+                        Text(detail!,
+                            style: const TextStyle(
+                                fontSize: 12, color: _hintColor)),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 13, color: _labelColor)),
-                  if (detail != null) ...[
-                    const SizedBox(height: 4),
-                    Text(detail!,
-                        style: const TextStyle(
-                            fontSize: 12, color: _hintColor)),
-                  ],
+                ),
+                if (onTap != null) ...[
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right_rounded, color: _hintColor),
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+Future<void> _showDetailSheet(
+  BuildContext context, {
+  required String title,
+  required List<(String, String)> entries,
+}) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              ...entries.where((e) => e.$2.trim().isNotEmpty).map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 92,
+                            child: Text(
+                              '${e.$1}:',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                          Expanded(child: Text(e.$2)),
+                        ],
+                      ),
+                    ),
+                  ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _StatusBadge extends StatelessWidget {

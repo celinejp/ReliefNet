@@ -58,9 +58,8 @@ app.get("/api/alerts", optionalBearerJwt, async (req, res) => {
     const match = {};
     if (validSeverity) match.severity = validSeverity;
 
-    if (authConfigured() && req.authUser && !req.authUser.isAdmin) {
-      match.auth0UserId = req.authUser.sub;
-    }
+    // Option A policy: any authenticated user can view the shared alert feed.
+    // Keep auth required, but do not restrict list results to owner-only.
 
     const pipeline = [
       { $match: match },
