@@ -12,7 +12,6 @@ import '../config/build_info.dart';
 import '../features/person_report/screens/person_report_form_screen.dart';
 import '../features/person_report/screens/reports_display_screen.dart';
 import '../relief_net_app.dart';
-import 'incident_dashboard_screen.dart';
 import 'offline_alert_screen.dart';
 import 'submit_online_alert_screen.dart';
 
@@ -298,29 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
 
-                const SizedBox(height: 12),
 
-                _ActionTile(
-                  icon: Icons.dashboard_customize_rounded,
-                  iconBackground:
-                      colorScheme.secondary.withValues(alpha: 0.18),
-                  iconColor: colorScheme.secondary,
-                  title: 'Incident dashboard',
-
-                  subtitle:
-                      'Prioritized incidents from the cloud feed.',
-
-                  enabled: _hasNetwork,
-
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            const IncidentDashboardScreen(),
-                      ),
-                    );
-                  },
-                ),
               ]),
             ),
           ),

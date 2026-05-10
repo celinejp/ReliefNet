@@ -5,14 +5,21 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/volunteer_service.dart';
 
+const _bg = Color(0xFF1A202C);
+const _cardBg = Color(0xFF2D3748);
+const _borderColor = Color(0xFF4A5568);
+const _hintColor = Color(0xFF718096);
+const _labelColor = Color(0xFFA0AEC0);
+const _primaryBlue = Color(0xFF3182CE);
+
 const List<Map<String, String>> kCategories = [
-  {'value': 'food', 'label': '🍱 Food'},
-  {'value': 'water', 'label': '💧 Water'},
-  {'value': 'medical', 'label': '🏥 Medical'},
-  {'value': 'transport', 'label': '🚗 Transport'},
-  {'value': 'shelter', 'label': '🏠 Shelter'},
-  {'value': 'rescue', 'label': '🚨 Rescue'},
-  {'value': 'other', 'label': '📦 Other'},
+  {'value': 'food', 'label': 'Food'},
+  {'value': 'water', 'label': 'Water'},
+  {'value': 'medical', 'label': 'Medical'},
+  {'value': 'transport', 'label': 'Transport'},
+  {'value': 'shelter', 'label': 'Shelter'},
+  {'value': 'rescue', 'label': 'Rescue'},
+  {'value': 'other', 'label': 'Other'},
 ];
 
 class VolunteerFormScreen extends StatefulWidget {
@@ -73,6 +80,7 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
   void _showPhotoOptions() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -82,7 +90,10 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Add Photo',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -95,10 +106,9 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Take Photo'),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3182CE),
+                        backgroundColor: _primaryBlue,
                         foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14)),
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -113,8 +123,7 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
                     style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF276749),
                         foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14)),
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
                   ),
                 ),
               ],
@@ -266,20 +275,20 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
   Widget build(BuildContext context) {
     if (_submitted) return _buildSuccess();
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAFC),
+      backgroundColor: _bg,
       appBar: AppBar(
         title: const Text('Volunteer & Relief',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1A202C),
+        backgroundColor: _bg,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
+          indicatorColor: _primaryBlue,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.grey.shade400,
+          unselectedLabelColor: _hintColor,
           tabs: const [
-            Tab(text: '🆘 I Need Help'),
-            Tab(text: '🤝 I Can Help'),
+            Tab(text: 'I Need Help'),
+            Tab(text: 'I Can Help'),
           ],
         ),
       ),
@@ -323,7 +332,7 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
               maxLines: 4),
           const SizedBox(height: 16),
           _label('Photo (optional — helps identify the situation)'),
-          _photoPickerWidget(const Color(0xFF3182CE)),
+          _photoPickerWidget(_primaryBlue),
           const SizedBox(height: 16),
           _label('Location'),
           _textField(_locationController, 'e.g. Barangay 5 near bridge'),
@@ -382,20 +391,25 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
   Widget _buildSuccess() {
     final isNeed = _submittedNeed;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAFC),
+      backgroundColor: _bg,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(isNeed ? '✅' : '🤝',
-                  style: const TextStyle(fontSize: 64)),
+              Icon(
+                isNeed ? Icons.check_circle : Icons.volunteer_activism,
+                size: 64,
+                color: _primaryBlue,
+              ),
               const SizedBox(height: 20),
               Text(
                 isNeed ? 'Request Submitted' : 'Volunteer Registered',
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white),
               ),
               const SizedBox(height: 12),
               Text(
@@ -403,13 +417,13 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
                     ? 'We will find a volunteer for you. You will be contacted at ${_phoneController.text}.'
                     : 'Thank you! You will be contacted when someone needs your help.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 15),
+                style: const TextStyle(color: _hintColor, fontSize: 15),
               ),
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _resetForm,
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3182CE),
+                    backgroundColor: _primaryBlue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 14)),
@@ -419,6 +433,8 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
               OutlinedButton(
                 onPressed: () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: _borderColor),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 14)),
                 child: const Text('Back to Home'),
@@ -437,9 +453,9 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
               style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A202C))),
+                  color: Colors.white)),
           const SizedBox(height: 4),
-          Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          Text(sub, style: const TextStyle(color: _hintColor, fontSize: 14)),
         ],
       );
 
@@ -449,7 +465,7 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
             style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: Color(0xFF4A5568))),
+                color: _labelColor)),
       );
 
   Widget _textField(TextEditingController ctrl, String hint,
@@ -457,22 +473,42 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
       TextField(
         controller: ctrl,
         maxLines: maxLines,
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: hint,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          hintStyle: const TextStyle(color: _hintColor),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: _cardBg,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _borderColor)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _borderColor)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _primaryBlue, width: 2)),
         ),
       );
 
   Widget _phoneField() => TextField(
         controller: _phoneController,
         keyboardType: TextInputType.phone,
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: 'Phone number',
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          hintStyle: const TextStyle(color: _hintColor),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: _cardBg,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _borderColor)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _borderColor)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _primaryBlue, width: 2)),
         ),
       );
 
@@ -495,17 +531,15 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: selected ? const Color(0xFF3182CE) : Colors.white,
+                color: selected ? _primaryBlue : _cardBg,
                 border: Border.all(
-                    color: selected
-                        ? const Color(0xFF3182CE)
-                        : const Color(0xFFE2E8F0)),
+                    color: selected ? _primaryBlue : _borderColor),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 cat['label']!,
                 style: TextStyle(
-                    color: selected ? Colors.white : Colors.black87,
+                    color: selected ? Colors.white : Colors.white70,
                     fontSize: 13,
                     fontWeight: FontWeight.w600),
               ),
@@ -516,13 +550,13 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
 
   Widget _urgencySelector() => Row(
         children: [
-          _urgencyChip('critical', '🔴 Critical', const Color(0xFFFFF5F5),
+          _urgencyChip('critical', 'Critical', const Color(0xFF9B2C2C),
               const Color(0xFFFC8181)),
           const SizedBox(width: 8),
-          _urgencyChip('urgent', '🟡 Urgent', const Color(0xFFFFFAF0),
+          _urgencyChip('urgent', 'Urgent', const Color(0xFF744210),
               const Color(0xFFF6AD55)),
           const SizedBox(width: 8),
-          _urgencyChip('normal', '🟢 Normal', const Color(0xFFF0FFF4),
+          _urgencyChip('normal', 'Normal', const Color(0xFF1C4532),
               const Color(0xFF68D391)),
         ],
       );
@@ -535,17 +569,18 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: _urgency == value ? bg : Colors.white,
+              color: _urgency == value ? bg : _cardBg,
               border: Border.all(
-                  color:
-                      _urgency == value ? border : const Color(0xFFE2E8F0),
+                  color: _urgency == value ? border : _borderColor,
                   width: _urgency == value ? 2 : 1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600)),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white)),
           ),
         ),
       );
@@ -557,23 +592,25 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
               if (value > 1) onChanged(value - 1);
             },
             icon: const Icon(Icons.remove_circle_outline),
-            color: const Color(0xFF3182CE),
+            color: _primaryBlue,
           ),
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: _borderColor),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text('$value',
                 style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
           ),
           IconButton(
             onPressed: () => onChanged(value + 1),
             icon: const Icon(Icons.add_circle_outline),
-            color: const Color(0xFF3182CE),
+            color: _primaryBlue,
           ),
         ],
       );
@@ -591,14 +628,14 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0FFF4),
+          color: const Color(0xFF1C4532),
           border: Border.all(color: const Color(0xFF9AE6B4)),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
-            '✅ GPS: ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
+            'GPS: ${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)}',
             style: const TextStyle(
-                color: Color(0xFF276749), fontSize: 13)),
+                color: Color(0xFF9AE6B4), fontSize: 13)),
       );
 
   Widget _photoPickerWidget(Color accentColor) => GestureDetector(
@@ -606,9 +643,9 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
         child: Container(
           height: 120,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _cardBg,
             border: Border.all(
-              color: _photo != null ? accentColor : const Color(0xFFE2E8F0),
+              color: _photo != null ? accentColor : _borderColor,
               width: 2,
             ),
             borderRadius: BorderRadius.circular(12),
@@ -649,12 +686,12 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
               : const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add_a_photo, size: 32, color: Colors.grey),
+                    Icon(Icons.add_a_photo, size: 32, color: _hintColor),
                     SizedBox(height: 8),
                     Text('Tap to add photo',
-                        style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        style: TextStyle(color: _hintColor, fontSize: 13)),
                     Text('Camera or Gallery',
-                        style: TextStyle(color: Colors.grey, fontSize: 11)),
+                        style: TextStyle(color: _hintColor, fontSize: 11)),
                   ],
                 ),
         ),

@@ -15,6 +15,8 @@ const _confHigh = Color(0xFF276749);
 const _confMed = Color(0xFFB7791F);
 const _confLow = Color(0xFF9B2C2C);
 const _primaryBlue = Color(0xFF3182CE);
+const _bg = Color(0xFF1A202C);
+const _cardBg = Color(0xFF2D3748);
 
 class ReportsDisplayScreen extends StatefulWidget {
   const ReportsDisplayScreen({super.key});
@@ -105,7 +107,10 @@ class _ReportsDisplayScreenState extends State<ReportsDisplayScreen>
     final resolvedGroups = _groups.where((g) => g.resolved).toList();
 
     return Scaffold(
+      backgroundColor: _bg,
       appBar: AppBar(
+        backgroundColor: _bg,
+        foregroundColor: Colors.white,
         title: const Text('Reports Dashboard'),
         actions: [
           IconButton(
@@ -117,6 +122,9 @@ class _ReportsDisplayScreenState extends State<ReportsDisplayScreen>
         bottom: TabBar(
           controller: _tab,
           isScrollable: true,
+          labelColor: Colors.white,
+          unselectedLabelColor: _unknownGrey,
+          indicatorColor: _primaryBlue,
           tabs: [
             Tab(text: 'Matches (${activeGroups.length})'),
             Tab(text: 'Unmatched (${unresolved.length})'),
@@ -276,7 +284,7 @@ class _GroupCardState extends State<_GroupCard> {
             children: [
               Expanded(
                 child: Text(
-                  '👤 ${g.reports.length} Reports — Likely Same Person',
+                  '${g.reports.length} Reports — Likely Same Person',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -298,7 +306,7 @@ class _GroupCardState extends State<_GroupCard> {
                 color: confColor,
               ),
               _Badge(label: emerLabel, color: emerColor),
-              if (g.resolved) _Badge(label: '✅ Resolved', color: _unknownGrey),
+              if (g.resolved) _Badge(label: 'Resolved', color: _unknownGrey),
             ],
           ),
           const SizedBox(height: 8),
@@ -310,7 +318,7 @@ class _GroupCardState extends State<_GroupCard> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                '💬 ${g.aiReason}',
+                g.aiReason,
                 style: const TextStyle(
                   fontStyle: FontStyle.italic,
                   color: Colors.white70,
@@ -367,9 +375,7 @@ class _InlineReport extends StatelessWidget {
           Row(
             children: [
               Text(
-                report.reportType == 'looking'
-                    ? '🔍 Looking For'
-                    : '👁️ Found/Saw',
+                report.reportType == 'looking' ? 'Looking For' : 'Found/Saw',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               const Spacer(),
@@ -389,21 +395,21 @@ class _InlineReport extends StatelessWidget {
             runSpacing: 6,
             children: [
               if (report.approximateAge.isNotEmpty)
-                _Chip(text: '🎂 ${report.approximateAge}'),
+                _Chip(text: report.approximateAge),
               if (report.locationText.isNotEmpty)
-                _Chip(text: '📍 ${report.locationText}'),
+                _Chip(text: report.locationText),
               if (report.lastSeenAt != null)
                 _Chip(
-                    text:
-                        '🕐 ${DateFormat('MMM d, y · h:mm a').format(report.lastSeenAt!)}'),
+                    text: DateFormat('MMM d, y · h:mm a')
+                        .format(report.lastSeenAt!)),
               if (report.isInjured)
                 const _Chip(
-                    text: '🩹 Injured',
+                    text: 'Injured',
                     bg: Color(0xFFFED7D7),
                     fg: Color(0xFF9B2C2C)),
               if (report.isUnconscious)
                 const _Chip(
-                    text: '😶 Unconscious',
+                    text: 'Unconscious',
                     bg: Color(0xFFFED7D7),
                     fg: Color(0xFF9B2C2C)),
             ],
@@ -445,7 +451,7 @@ class _ReportCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                report.reportType == 'looking' ? '🔍 Looking' : '👁️ Found',
+                report.reportType == 'looking' ? 'Looking' : 'Found',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               const Spacer(),
@@ -461,18 +467,18 @@ class _ReportCard extends StatelessWidget {
             runSpacing: 6,
             children: [
               if (report.approximateAge.isNotEmpty)
-                _Chip(text: '🎂 ${report.approximateAge}'),
-              if (report.gender != 'unknown') _Chip(text: '👤 ${report.gender}'),
+                _Chip(text: report.approximateAge),
+              if (report.gender != 'unknown') _Chip(text: report.gender),
               if (report.locationText.isNotEmpty)
-                _Chip(text: '📍 ${report.locationText}'),
+                _Chip(text: report.locationText),
               if (report.isInjured)
                 const _Chip(
-                    text: '🩹 Injured',
+                    text: 'Injured',
                     bg: Color(0xFFFED7D7),
                     fg: Color(0xFF9B2C2C)),
               if (report.isUnconscious)
                 const _Chip(
-                    text: '😶 Unconscious',
+                    text: 'Unconscious',
                     bg: Color(0xFFFED7D7),
                     fg: Color(0xFF9B2C2C)),
             ],
@@ -482,7 +488,7 @@ class _ReportCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '👤 ${report.reporterName}',
+                  report.reporterName,
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ),
@@ -528,7 +534,7 @@ class _Badge extends StatelessWidget {
 class _Chip extends StatelessWidget {
   const _Chip({
     required this.text,
-    this.bg = const Color(0xFF2D3748),
+    this.bg = _cardBg,
     this.fg = Colors.white,
   });
 
@@ -574,10 +580,10 @@ Color _emergencyColor(String e) {
 String _emergencyLabel(String e) {
   switch (e) {
     case 'critical':
-      return '🔴 CRITICAL';
+      return 'CRITICAL';
     case 'stable':
-      return '🟢 Stable';
+      return 'Stable';
     default:
-      return '⚪ Unknown';
+      return 'Unknown';
   }
 }

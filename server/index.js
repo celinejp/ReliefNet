@@ -2,8 +2,17 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
 import { Alert } from "./models/Alert.js";
 import { categorizeIncident } from "./services/claudeCategorize.js";
+import personReportRoutes from "./routes/person-reports.js";
+import volunteerRoutes from "./routes/volunteers.js";
+import donationRoutes from "./routes/donations.js";
+import matchRoutes from "./routes/match-volunteers.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -166,6 +175,19 @@ try {
   printMongoConnectionHelp(mongoUri, err);
   process.exit(1);
 }
+
+// Person Report routes
+app.use("/api/person-reports", personReportRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Volunteer & Need routes
+app.use("/api", volunteerRoutes);
+
+// Donation routes
+app.use("/api/donations", donationRoutes);
+
+// Volunteer matching routes
+app.use("/api/match-volunteers", matchRoutes);
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`ReliefNet API listening on :${port}`);

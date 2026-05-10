@@ -1,7 +1,7 @@
-const Anthropic = require("@anthropic-ai/sdk");
-const Need = require("../models/Need");
-const Volunteer = require("../models/Volunteer");
-const VolunteerMatch = require("../models/VolunteerMatch");
+import Anthropic from "@anthropic-ai/sdk";
+import Need from "../models/Need.js";
+import Volunteer from "../models/Volunteer.js";
+import VolunteerMatch from "../models/VolunteerMatch.js";
 
 function getDistanceMiles(lat1, lng1, lat2, lng2) {
   if (!lat1 || !lng1 || !lat2 || !lng2) return null;
@@ -34,11 +34,13 @@ async function runVolunteerMatching(io) {
       return [];
     }
 
-    // Pre-filter: for each need, only include volunteers within 15 miles
-    const needsWithCandidates = unmatchedNeeds.map(need => {
+    const needsWithCandidates = unmatchedNeeds.map((need) => {
       const candidates = availableVolunteers
-        .map(v => {
-          const dist = getDistanceMiles(need.lat, need.lng, v.lat, v.lng);
+        .map((v) => {
+          const dist = getDistanceMiles(
+            need.coordinates?.lat, need.coordinates?.lng,
+            v.coordinates?.lat, v.coordinates?.lng
+          );
           return {
             id: v._id.toString(),
             name: v.name,
@@ -49,7 +51,7 @@ async function runVolunteerMatching(io) {
             distance_miles: dist !== null ? Math.round(dist * 10) / 10 : null,
           };
         })
-        .filter(v => v.distance_miles === null || v.distance_miles <= 15);
+        .filter((v) => v.distance_miles === null || v.distance_miles <= 15);
 
       return {
         need: {
@@ -98,7 +100,7 @@ If no matches possible return: { "matches": [] }
     const response = await client.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 1000,
-      messages: [{ role: "user", content: prompt }]
+      messages: [{ role: "user", content: prompt }],
     });
 
     const rawText = response.content[0].text.trim();
@@ -127,17 +129,17 @@ If no matches possible return: { "matches": [] }
         needId: match.needId,
         volunteerId: match.volunteerId,
         confidence: match.confidence,
-        aiReason: match.reason
+        aiReason: match.reason,
       });
 
       await Need.findByIdAndUpdate(match.needId, {
         status: "matched",
-        matchId: savedMatch._id
+        matchId: savedMatch._id,
       });
 
       await Volunteer.findByIdAndUpdate(match.volunteerId, {
         status: "matched",
-        matchId: savedMatch._id
+        matchId: savedMatch._id,
       });
 
       savedMatches.push(savedMatch);
@@ -149,7 +151,7 @@ If no matches possible return: { "matches": [] }
           needId: match.needId,
           volunteerId: match.volunteerId,
           confidence: match.confidence,
-          reason: match.reason
+          reason: match.reason,
         });
       }
     }
@@ -161,4 +163,4 @@ If no matches possible return: { "matches": [] }
   }
 }
 
-module.exports = { runVolunteerMatching };
+export { runVolunteerMatching };

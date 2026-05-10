@@ -3,6 +3,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/match_model.dart';
 import '../services/volunteer_service.dart';
 
+const _bg = Color(0xFF1A202C);
+const _cardBg = Color(0xFF2D3748);
+const _borderColor = Color(0xFF4A5568);
+const _hintColor = Color(0xFF718096);
+const _primaryBlue = Color(0xFF3182CE);
+
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
 
@@ -31,7 +37,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     setState(() {
       if (matches.length > _previousMatchCount && _previousMatchCount > 0) {
         _notificationMessage =
-            '🎉 ${matches.length - _previousMatchCount} new match(es) found! People are being connected.';
+            '${matches.length - _previousMatchCount} new match(es) found! People are being connected.';
         _notificationColor = const Color(0xFF276749);
       }
       _previousMatchCount = matches.length;
@@ -53,8 +59,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
       final foundMatches = !message.contains('Found 0');
       setState(() {
         _notificationMessage = foundMatches
-            ? '🎉 $message — Volunteers are being connected to people in need!'
-            : 'ℹ️ No new matches found. More needs or volunteers required.';
+            ? '$message — Volunteers are being connected to people in need!'
+            : 'No new matches found. More needs or volunteers required.';
         _notificationColor = foundMatches
             ? const Color(0xFF276749)
             : const Color(0xFF2B6CB0);
@@ -62,7 +68,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
       await _fetchMatches();
     } else {
       setState(() {
-        _notificationMessage = '❌ Error running AI: ${result['message']}';
+        _notificationMessage = 'Error running AI: ${result['message']}';
         _notificationColor = Colors.red.shade700;
       });
     }
@@ -72,9 +78,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Mark as Resolved?'),
+        backgroundColor: _cardBg,
+        title: const Text('Mark as Resolved?',
+            style: TextStyle(color: Colors.white)),
         content: const Text(
-            'Confirm that the volunteer successfully helped this person. This cannot be undone.'),
+            'Confirm that the volunteer successfully helped this person. This cannot be undone.',
+            style: TextStyle(color: _hintColor)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -95,7 +104,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
       if (!mounted) return;
       if (success) {
         setState(() {
-          _notificationMessage = '✅ Case resolved. Volunteer is now available again.';
+          _notificationMessage =
+              'Case resolved. Volunteer is now available again.';
           _notificationColor = const Color(0xFF276749);
         });
         _fetchMatches();
@@ -107,8 +117,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Call $name?'),
-        content: Text('Opens your phone dialer to call $phone.'),
+        backgroundColor: _cardBg,
+        title: Text('Call $name?',
+            style: const TextStyle(color: Colors.white)),
+        content: Text('Opens your phone dialer to call $phone.',
+            style: const TextStyle(color: _hintColor)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -117,9 +130,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3182CE),
+                backgroundColor: _primaryBlue,
                 foregroundColor: Colors.white),
-            child: const Text('📞 Call Now'),
+            child: const Text('Call Now'),
           ),
         ],
       ),
@@ -138,11 +151,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final resolvedMatches = _matches.where((m) => m.resolved).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAFC),
+      backgroundColor: _bg,
       appBar: AppBar(
         title: const Text('AI Volunteer Matches',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1A202C),
+        backgroundColor: _bg,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -174,8 +187,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => setState(
-                              () => _notificationMessage = null),
+                          onTap: () =>
+                              setState(() => _notificationMessage = null),
                           child: const Icon(Icons.close,
                               color: Colors.white, size: 20),
                         ),
@@ -184,7 +197,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   ),
 
                 Container(
-                  color: Colors.white,
+                  color: _cardBg,
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
@@ -199,23 +212,23 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 ),
 
                 Container(
-                  color: Colors.white,
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  color: _cardBg,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Divider(height: 1),
+                      const Divider(height: 1, color: _borderColor),
                       const SizedBox(height: 12),
-                      const Text('🤖 AI Matching Engine',
+                      const Text('AI Matching Engine',
                           style: TextStyle(
                               fontWeight: FontWeight.w800,
-                              fontSize: 16)),
+                              fontSize: 16,
+                              color: Colors.white)),
                       const SizedBox(height: 4),
                       const Text(
                         'Claude AI compares all unmatched needs with available volunteers and finds the best pairs based on what is needed, location, and urgency level.',
                         style: TextStyle(
-                            color: Colors.grey,
+                            color: _hintColor,
                             fontSize: 13,
                             height: 1.5),
                       ),
@@ -244,8 +257,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                                 fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color(0xFF3182CE),
+                            backgroundColor: _primaryBlue,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                                 vertical: 14),
@@ -279,8 +291,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
                               if (resolvedMatches.isNotEmpty) ...[
                                 const SizedBox(height: 8),
                                 const _SectionHeader(
-                                    label: '✅ Resolved Cases',
-                                    color: Colors.grey),
+                                    label: 'Resolved Cases',
+                                    color: _hintColor),
                                 ...resolvedMatches.map((m) =>
                                     _MatchCard(
                                       match: m,
@@ -303,33 +315,33 @@ class _MatchesScreenState extends State<MatchesScreen> {
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('🤝', style: TextStyle(fontSize: 56)),
-              const SizedBox(height: 16),
-              const Text('No Matches Yet',
+            children: const [
+              Icon(Icons.people_outline, size: 56, color: _hintColor),
+              SizedBox(height: 16),
+              Text('No Matches Yet',
                   style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              const Text(
-                'Steps to get matches:\n\n1️⃣  Someone submits a need\n2️⃣  A volunteer registers\n3️⃣  Tap "Find Matches with AI" above',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+              SizedBox(height: 12),
+              Text(
+                'Steps to get matches:\n\n1. Someone submits a need\n2. A volunteer registers\n3. Tap "Find Matches with AI" above',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.grey, fontSize: 14, height: 1.7),
+                    color: _hintColor, fontSize: 14, height: 1.7),
               ),
             ],
           ),
         ),
       );
 
-  Widget _statBox(String num, String label, Color color) =>
-      Expanded(
+  Widget _statBox(String num, String label, Color color) => Expanded(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
-            border:
-                Border(top: BorderSide(color: color, width: 3)),
+            color: color.withOpacity(0.1),
+            border: Border(top: BorderSide(color: color, width: 3)),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -341,7 +353,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       color: color)),
               Text(label,
                   style: const TextStyle(
-                      fontSize: 11, color: Colors.grey),
+                      fontSize: 11, color: _hintColor),
                   textAlign: TextAlign.center),
             ],
           ),
@@ -353,7 +365,7 @@ class _SectionHeader extends StatelessWidget {
   final String label;
   final Color color;
   const _SectionHeader(
-      {required this.label, this.color = const Color(0xFF1A202C)});
+      {required this.label, this.color = Colors.white});
 
   @override
   Widget build(BuildContext context) {
@@ -392,19 +404,14 @@ class _MatchCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF2D3748),
         border: Border.all(
           color: isResolved
-              ? Colors.grey.shade200
-              : _confColor.withOpacity(0.3),
+              ? const Color(0xFF4A5568)
+              : _confColor.withOpacity(0.5),
           width: 2,
         ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8)
-        ],
       ),
       child: Column(
         children: [
@@ -412,17 +419,19 @@ class _MatchCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isResolved ? Colors.grey.shade100 : _confColor,
+              color: isResolved ? const Color(0xFF4A5568) : _confColor,
               borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(14)),
             ),
             child: Row(
               children: [
-                const Text('🤝 ',
-                    style: TextStyle(fontSize: 16)),
+                const Icon(Icons.people, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
                 Text('Volunteer Match',
                     style: TextStyle(
-                        color: isResolved ? Colors.grey.shade700 : Colors.white,
+                        color: isResolved
+                            ? Colors.white70
+                            : Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 15)),
                 const Spacer(),
@@ -430,17 +439,15 @@ class _MatchCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color: isResolved
-                        ? Colors.grey.shade200
-                        : Colors.white.withOpacity(0.2),
+                    color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     isResolved
-                        ? '✅ RESOLVED'
+                        ? 'RESOLVED'
                         : '${match.confidence.toUpperCase()} MATCH',
-                    style: TextStyle(
-                        color: isResolved ? Colors.grey.shade700 : Colors.white,
+                    style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.bold),
                   ),
@@ -455,7 +462,6 @@ class _MatchCard extends StatelessWidget {
               children: [
                 if (match.need != null)
                   _personCard(
-                    emoji: '🆘',
                     role: 'NEEDS HELP',
                     roleColor: Colors.red,
                     name: match.need!.name,
@@ -472,31 +478,32 @@ class _MatchCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Row(
                       children: [
-                        const Expanded(child: Divider()),
+                        const Expanded(
+                            child: Divider(color: _borderColor)),
                         Container(
                           margin: const EdgeInsets.symmetric(
                               horizontal: 10),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7FAFC),
+                            color: _bg,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: Colors.grey.shade200),
+                            border:
+                                Border.all(color: _borderColor),
                           ),
                           child: const Text('matched with',
                               style: TextStyle(
-                                  color: Colors.grey,
+                                  color: _hintColor,
                                   fontSize: 12)),
                         ),
-                        const Expanded(child: Divider()),
+                        const Expanded(
+                            child: Divider(color: _borderColor)),
                       ],
                     ),
                   ),
 
                 if (match.volunteer != null)
                   _personCard(
-                    emoji: '🤝',
                     role: 'CAN HELP',
                     roleColor: Colors.green,
                     name: match.volunteer!.name,
@@ -514,35 +521,24 @@ class _MatchCard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7FAFC),
+                    color: _bg,
                     borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: _borderColor),
                   ),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('🤖 ',
-                          style: TextStyle(fontSize: 16)),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            const Text('Why AI matched them:',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 12,
-                                    color: Colors.grey)),
-                            const SizedBox(height: 4),
-                            Text(match.aiReason,
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF4A5568),
-                                    height: 1.4)),
-                          ],
-                        ),
-                      ),
+                      const Text('Why AI matched them:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              color: _hintColor)),
+                      const SizedBox(height: 4),
+                      Text(match.aiReason,
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                              height: 1.4)),
                     ],
                   ),
                 ),
@@ -582,7 +578,6 @@ class _MatchCard extends StatelessWidget {
   }
 
   Widget _personCard({
-    required String emoji,
     required String role,
     required Color roleColor,
     required String name,
@@ -595,10 +590,9 @@ class _MatchCard extends StatelessWidget {
       Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: roleColor.withOpacity(0.04),
+          color: roleColor.withOpacity(0.06),
           borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: roleColor.withOpacity(0.2)),
+          border: Border.all(color: roleColor.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -627,7 +621,7 @@ class _MatchCard extends StatelessWidget {
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text('🔴 CRITICAL',
+                    child: const Text('CRITICAL',
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 10,
@@ -640,12 +634,13 @@ class _MatchCard extends StatelessWidget {
             Text(name,
                 style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w700)),
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white)),
             if (location.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text('📍 $location',
+              Text(location,
                   style: const TextStyle(
-                      color: Colors.grey, fontSize: 12)),
+                      color: _hintColor, fontSize: 12)),
             ],
             const SizedBox(height: 8),
             Wrap(
@@ -656,14 +651,14 @@ class _MatchCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEDF2F7),
+                          color: const Color(0xFF4A5568),
                           borderRadius:
                               BorderRadius.circular(12),
                         ),
                         child: Text(t,
                             style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF4A5568))),
+                                color: Colors.white70)),
                       ))
                   .toList(),
             ),
@@ -677,13 +672,12 @@ class _MatchCard extends StatelessWidget {
                     style: const TextStyle(
                         fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3182CE),
+                  backgroundColor: _primaryBlue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ),
