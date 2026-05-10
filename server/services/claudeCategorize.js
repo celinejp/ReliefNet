@@ -1,6 +1,6 @@
 import Anthropic, { NotFoundError } from "@anthropic-ai/sdk";
 
-const ALLOWED = new Set(["Critical", "Medium", "Low"]);
+const ALLOWED = new Set(["Critical", "High", "Medium", "Low"]);
 
 /** Cached model ids from GET /v1/models (per process). */
 let listedModelIdsCache = null;
@@ -95,10 +95,15 @@ export async function categorizeIncident(rawMessage) {
   const system = [
     "You are an emergency/disaster triage assistant.",
     "Given a messy user report, respond with ONLY a JSON object (no markdown, no prose) with keys:",
-    '- "severity": one of "Critical", "Medium", "Low"',
+    '- "severity": one of "Critical", "High", "Medium", "Low"',
     '- "category": short structured label (e.g. "Medical + Structural Collapse")',
     '- "summary": one concise professional sentence describing the incident',
-    "If unclear, choose the safest severity (prefer Critical when safety is ambiguous).",
+    "Use this rubric:",
+    "Critical means immediate life threat, trapped people, active fire, major bleeding, unconsciousness, collapse, drowning, gunfire, or urgent rescue needed now.",
+    "High means serious but not clearly immediate-death: severe injury, blocked access to essentials, dangerous conditions, missing vulnerable person, escalating hazard, or urgent medical/resource need.",
+    "Medium means important help is needed soon but the report is stable, non-life-threatening, or partially resolved.",
+    "Low means informational, minor damage, supplies requested without urgent risk, welfare check, or low-acuity follow-up.",
+    "If uncertain, choose the safer higher severity, but reserve Critical for clear immediate danger.",
   ].join(" ");
 
   const user = `Disaster report:\n"""${rawMessage.trim()}"""`;

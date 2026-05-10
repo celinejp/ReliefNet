@@ -5,7 +5,7 @@ const alertSchema = new mongoose.Schema(
     rawMessage: { type: String, required: true, trim: true },
     severity: {
       type: String,
-      enum: ["Critical", "Medium", "Low", null],
+      enum: ["Critical", "High", "Medium", "Low", null],
       default: null,
     },
     category: { type: String, default: "" },

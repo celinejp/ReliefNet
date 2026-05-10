@@ -13,7 +13,7 @@ import '../services/session_controller.dart';
 import '../widgets/severity_badge.dart';
 import 'alert_detail_screen.dart';
 
-enum _AlertTab { all, critical, medium, low, mine, offlineHub, synced }
+enum _AlertTab { all, critical, high, medium, low, mine, offlineHub, synced }
 
 class AllAlertsScreen extends StatefulWidget {
   const AllAlertsScreen({super.key});
@@ -423,6 +423,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     return switch (_tab) {
       _AlertTab.all => items,
       _AlertTab.critical => items.where((a) => a.severity == 'Critical').toList(),
+      _AlertTab.high => items.where((a) => a.severity == 'High').toList(),
       _AlertTab.medium => items.where((a) => a.severity == 'Medium').toList(),
       _AlertTab.low => items.where((a) => a.severity == 'Low').toList(),
       _AlertTab.mine => items.where((a) => a.isMine).toList(),
@@ -478,6 +479,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
               children: [
                 _tabChip('All', _AlertTab.all),
                 _tabChip('Critical', _AlertTab.critical),
+                _tabChip('High', _AlertTab.high),
                 _tabChip('Medium', _AlertTab.medium),
                 _tabChip('Low', _AlertTab.low),
                 _tabChip('My Alerts', _AlertTab.mine),

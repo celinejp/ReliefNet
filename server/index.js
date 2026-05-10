@@ -42,7 +42,10 @@ app.get("/api/alerts", optionalBearerJwt, async (req, res) => {
     const severity =
       typeof req.query.severity === "string" ? req.query.severity.trim() : "";
     const validSeverity =
-      severity === "Critical" || severity === "Medium" || severity === "Low"
+      severity === "Critical" ||
+      severity === "High" ||
+      severity === "Medium" ||
+      severity === "Low"
         ? severity
         : "";
 
@@ -67,8 +70,9 @@ app.get("/api/alerts", optionalBearerJwt, async (req, res) => {
             $switch: {
               branches: [
                 { case: { $eq: ["$severity", "Critical"] }, then: 0 },
-                { case: { $eq: ["$severity", "Medium"] }, then: 1 },
-                { case: { $eq: ["$severity", "Low"] }, then: 2 },
+                { case: { $eq: ["$severity", "High"] }, then: 1 },
+                { case: { $eq: ["$severity", "Medium"] }, then: 2 },
+                { case: { $eq: ["$severity", "Low"] }, then: 3 },
               ],
               default: 3,
             },

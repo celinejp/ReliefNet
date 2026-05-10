@@ -59,7 +59,7 @@ class CloudAlertApi {
     return h;
   }
 
-  /// [severity] — optional server filter: `Critical`, `Medium`, or `Low`.
+  /// [severity] — optional server filter: `Critical`, `High`, `Medium`, or `Low`.
   /// List is sorted by severity priority then newest first.
   Future<List<CloudIncident>> listAlerts({
     String? severity,
@@ -68,6 +68,7 @@ class CloudAlertApi {
     final query = <String, String>{'limit': '$limit'};
     if (severity != null &&
         (severity == 'Critical' ||
+            severity == 'High' ||
             severity == 'Medium' ||
             severity == 'Low')) {
       query['severity'] = severity;

@@ -20,6 +20,10 @@ class SeverityBadge extends StatelessWidget {
         fg = scheme.onErrorContainer;
         bg = scheme.errorContainer;
         break;
+      case 'High':
+        fg = scheme.onPrimaryContainer;
+        bg = scheme.primaryContainer;
+        break;
       case 'Medium':
         fg = scheme.onTertiaryContainer;
         bg = scheme.tertiaryContainer;

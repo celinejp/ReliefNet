@@ -5,7 +5,7 @@ import '../services/cloud_alert_api.dart';
 import '../widgets/severity_badge.dart';
 import 'alert_detail_screen.dart';
 
-enum _SeverityFilter { all, critical, medium, low }
+enum _SeverityFilter { all, critical, high, medium, low }
 
 class IncidentDashboardScreen extends StatefulWidget {
   const IncidentDashboardScreen({super.key});
@@ -30,6 +30,7 @@ class _IncidentDashboardScreenState extends State<IncidentDashboardScreen> {
     final severity = switch (_filter) {
       _SeverityFilter.all => null,
       _SeverityFilter.critical => 'Critical',
+      _SeverityFilter.high => 'High',
       _SeverityFilter.medium => 'Medium',
       _SeverityFilter.low => 'Low',
     };
@@ -83,6 +84,12 @@ class _IncidentDashboardScreenState extends State<IncidentDashboardScreen> {
                   label: const Text('Critical'),
                   selected: _filter == _SeverityFilter.critical,
                   onSelected: (_) => _onFilterChanged(_SeverityFilter.critical),
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('High'),
+                  selected: _filter == _SeverityFilter.high,
+                  onSelected: (_) => _onFilterChanged(_SeverityFilter.high),
                 ),
                 const SizedBox(width: 8),
                 FilterChip(
