@@ -16,8 +16,23 @@ const alertSchema = new mongoose.Schema(
       default: "pending",
     },
     aiError: { type: String, default: "" },
+    auth0UserId: { type: String, default: null, index: true },
+    userEmail: { type: String, default: "" },
+    guestMode: { type: Boolean, default: false },
+    location: { type: String, default: "", trim: true },
+    mode: {
+      type: String,
+      enum: ["online", "offline"],
+      default: "online",
+    },
+    responderStatus: {
+      type: String,
+      enum: ["open", "in_progress", "closed"],
+      default: "open",
+    },
   },
   { timestamps: true },
 );
 
-export const Alert = mongoose.models.Alert || mongoose.model("Alert", alertSchema);
+export const Alert =
+  mongoose.models.Alert || mongoose.model("Alert", alertSchema);

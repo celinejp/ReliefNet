@@ -4,6 +4,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
+import '../services/session_controller.dart';
+
 class OfflineAlertScreen extends StatefulWidget {
   const OfflineAlertScreen({super.key});
 
@@ -25,6 +27,15 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sess = SessionController.instance;
+      if (!mounted) return;
+      if (sess.isAuthenticated && _nameController.text.trim().isEmpty) {
+        final hint =
+            (sess.userEmail ?? sess.userSub ?? '').trim();
+        if (hint.isNotEmpty) _nameController.text = hint;
+      }
+    });
     _connectivitySub =
         Connectivity().onConnectivityChanged.listen((statuses) {
       if (!mounted) return;
@@ -127,12 +138,17 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       return;
     }
 
+    final sess = SessionController.instance;
     final alert = {
       'reporter': name,
       'location': location,
       'message': message,
       'type': 'SOS',
       'timestamp': DateTime.now().toIso8601String(),
+      'auth0UserId': sess.cachedReporterAuth0Id,
+      'userEmail': sess.userEmail,
+      'guestMode': sess.isGuest,
+      'mode': 'offline',
     };
 
     _socket?.emit('new-alert', alert);

@@ -5,8 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
+import '../config/auth0_config.dart';
 import '../config/build_info.dart';
 import '../relief_net_app.dart';
+import '../services/cloud_alert_api.dart';
+import '../services/pending_cloud_sync.dart';
+import '../services/session_controller.dart';
 import 'incident_dashboard_screen.dart';
 import 'offline_alert_screen.dart';
 import 'submit_online_alert_screen.dart';
@@ -25,12 +29,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    Connectivity().checkConnectivity().then((v) {
-      if (mounted) setState(() => _connectivity = v);
+    Connectivity().checkConnectivity().then((v) async {
+      if (!mounted) return;
+      setState(() => _connectivity = v);
+      await _flushQueuedAlerts(v);
     });
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((v) {
-      if (mounted) setState(() => _connectivity = v);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((v) async {
+      if (!mounted) return;
+      setState(() => _connectivity = v);
+      await _flushQueuedAlerts(v);
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final api = CloudAlertApi();
+      final n = await PendingCloudSync.flush(api);
+      if (mounted && n > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(n == 1 ? 'Synced 1 queued alert.' : 'Synced $n queued alerts.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _flushQueuedAlerts(List<ConnectivityResult> statuses) async {
+    final online = statuses.any((r) => r != ConnectivityResult.none);
+    if (!online) return;
+    final api = CloudAlertApi();
+    final n = await PendingCloudSync.flush(api);
+    if (mounted && n > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(n == 1 ? 'Synced 1 queued alert.' : 'Synced $n queued alerts.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -41,6 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool get _hasNetwork =>
       _connectivity.any((r) => r != ConnectivityResult.none);
+
+  bool get _dashboardEligible =>
+      !Auth0Config.isConfigured || SessionController.instance.isAuthenticated;
 
   void _stub(BuildContext context, String label) {
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -66,6 +104,49 @@ class _HomeScreenState extends State<HomeScreen> {
             pinned: true,
             backgroundColor: ReliefNetApp.brandDeep,
             title: const Text('ReliefNet'),
+            actions: [
+              if (Auth0Config.isConfigured)
+                PopupMenuButton<String>(
+                  tooltip: 'Account',
+                  icon: Icon(
+                    SessionController.instance.isAuthenticated
+                        ? Icons.account_circle_rounded
+                        : Icons.person_outline_rounded,
+                  ),
+                  onSelected: (value) async {
+                    final sess = SessionController.instance;
+                    if (value == 'logout') {
+                      await sess.logout();
+                    } else if (value == 'signin') {
+                      await sess.switchFromGuestToLogin();
+                    }
+                  },
+                  itemBuilder: (context) {
+                    final sess = SessionController.instance;
+                    final email = (sess.userEmail ?? '').trim();
+                    final sub = (sess.userSub ?? '').trim();
+                    final profileLine =
+                        email.isNotEmpty ? email : (sub.isNotEmpty ? sub : 'Signed in');
+                    return [
+                      if (sess.isAuthenticated)
+                        PopupMenuItem<String>(
+                          enabled: false,
+                          child: Text(profileLine),
+                        ),
+                      if (sess.isGuest)
+                        const PopupMenuItem<String>(
+                          value: 'signin',
+                          child: Text('Sign in'),
+                        ),
+                      if (sess.isAuthenticated)
+                        const PopupMenuItem<String>(
+                          value: 'logout',
+                          child: Text('Log out'),
+                        ),
+                    ];
+                  },
+                ),
+            ],
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
@@ -204,8 +285,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconBackground: colorScheme.secondary.withValues(alpha: 0.18),
                   iconColor: colorScheme.secondary,
                   title: 'Incident dashboard',
-                  subtitle: 'Prioritized incidents from the cloud feed.',
-                  enabled: _hasNetwork,
+                  subtitle: Auth0Config.isConfigured && !_dashboardEligible
+                      ? 'Sign in to load incidents tied to your account.'
+                      : 'Prioritized incidents from the cloud feed.',
+                  enabled: _hasNetwork && _dashboardEligible,
+                  disabledSnackText:
+                      !_hasNetwork ? null : 'Sign in from the account menu to open your dashboard.',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -301,6 +386,7 @@ class _ActionTile extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     required this.enabled,
+    this.disabledSnackText,
   });
 
   final IconData icon;
@@ -310,6 +396,7 @@ class _ActionTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final bool enabled;
+  final String? disabledSnackText;
 
   @override
   Widget build(BuildContext context) {
@@ -323,9 +410,11 @@ class _ActionTile extends StatelessWidget {
         onTap: enabled
             ? onTap
             : () {
+                final msg = disabledSnackText ??
+                    'Connect to Wi‑Fi or cellular first.';
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Connect to Wi‑Fi or cellular first.'),
+                  SnackBar(
+                    content: Text(msg),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );

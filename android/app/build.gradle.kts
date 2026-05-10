@@ -28,6 +28,14 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Auth0 Flutter (Universal Login redirect). Override via Gradle property, e.g.
+        //   ./gradlew assembleDebug -P AUTH0_DOMAIN=dev-xx.us.auth0.com -P AUTH0_SCHEME=reliefnet
+        manifestPlaceholders["auth0Domain"] =
+            (project.findProperty("AUTH0_DOMAIN") as String?)
+                ?: "dev-vbjhh7iok0ix176c.us.auth0.com"
+        manifestPlaceholders["auth0Scheme"] =
+            (project.findProperty("AUTH0_SCHEME") as String?) ?: "reliefnet"
     }
 
     buildTypes {

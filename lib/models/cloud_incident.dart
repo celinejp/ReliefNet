@@ -9,6 +9,12 @@ class CloudIncident {
     required this.aiError,
     required this.createdAt,
     required this.updatedAt,
+    this.auth0UserId,
+    this.userEmail,
+    this.guestMode,
+    this.location,
+    this.mode,
+    this.responderStatus,
   });
 
   final String id;
@@ -20,6 +26,13 @@ class CloudIncident {
   final String? aiError;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  final String? auth0UserId;
+  final String? userEmail;
+  final bool? guestMode;
+  final String? location;
+  final String? mode;
+  final String? responderStatus;
 
   factory CloudIncident.fromJson(Map<String, dynamic> json) {
     DateTime? parseTs(dynamic v) {
@@ -37,6 +50,8 @@ class CloudIncident {
       id = rawId?.toString() ?? '';
     }
 
+    final guestRaw = json['guestMode'];
+
     return CloudIncident(
       id: id,
       rawMessage: json['rawMessage'] as String? ?? '',
@@ -47,6 +62,12 @@ class CloudIncident {
       aiError: json['aiError'] as String?,
       createdAt: parseTs(json['createdAt']),
       updatedAt: parseTs(json['updatedAt']),
+      auth0UserId: json['auth0UserId'] as String?,
+      userEmail: json['userEmail'] as String?,
+      guestMode: guestRaw is bool ? guestRaw : null,
+      location: json['location'] as String?,
+      mode: json['mode'] as String?,
+      responderStatus: json['responderStatus'] as String?,
     );
   }
 }

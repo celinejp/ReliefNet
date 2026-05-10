@@ -4,6 +4,11 @@ import express from "express";
 import mongoose from "mongoose";
 import { Alert } from "./models/Alert.js";
 import { categorizeIncident } from "./services/claudeCategorize.js";
+import {
+  authConfigured,
+  optionalBearerJwt,
+  requireAdmin,
+} from "./middleware/auth0Jwt.js";
 
 const app = express();
 app.use(cors());
@@ -14,11 +19,18 @@ app.get("/health", (_req, res) => {
     ok: true,
     mongo: mongoose.connection.readyState === 1,
     anthropic: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+    auth0: authConfigured(),
   });
 });
 
-app.get("/api/alerts", async (req, res) => {
+app.get("/api/alerts", optionalBearerJwt, async (req, res) => {
   try {
+    if (authConfigured()) {
+      if (!req.authUser?.sub) {
+        return res.status(401).json({ error: "Sign in required." });
+      }
+    }
+
     const severity =
       typeof req.query.severity === "string" ? req.query.severity.trim() : "";
     const validSeverity =
@@ -32,7 +44,12 @@ app.get("/api/alerts", async (req, res) => {
         ? Math.floor(limitRaw)
         : 200;
 
-    const match = validSeverity ? { severity: validSeverity } : {};
+    const match = {};
+    if (validSeverity) match.severity = validSeverity;
+
+    if (authConfigured() && req.authUser && !req.authUser.isAdmin) {
+      match.auth0UserId = req.authUser.sub;
+    }
 
     const pipeline = [
       { $match: match },
@@ -63,10 +80,29 @@ app.get("/api/alerts", async (req, res) => {
   }
 });
 
-app.get("/api/alerts/:id", async (req, res) => {
+app.get("/api/alerts/:id", optionalBearerJwt, async (req, res) => {
   try {
     const doc = await Alert.findById(req.params.id).lean();
     if (!doc) return res.status(404).json({ error: "Not found." });
+
+    if (authConfigured()) {
+      if (!req.authUser?.sub) {
+        const publicGuest =
+          doc.guestMode === true &&
+          (doc.auth0UserId == null || doc.auth0UserId === "");
+        if (!publicGuest) {
+          return res.status(401).json({ error: "Sign in required." });
+        }
+        return res.json(doc);
+      }
+      const ownerId = doc.auth0UserId ?? null;
+      const isOwner =
+        ownerId != null && ownerId === req.authUser.sub;
+      if (!req.authUser.isAdmin && !isOwner) {
+        return res.status(403).json({ error: "Not allowed to view this alert." });
+      }
+    }
+
     res.json(doc);
   } catch (err) {
     console.error(err);
@@ -74,7 +110,36 @@ app.get("/api/alerts/:id", async (req, res) => {
   }
 });
 
-app.post("/api/alerts", async (req, res) => {
+app.patch(
+  "/api/alerts/:id/responder-status",
+  optionalBearerJwt,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const status = req.body?.responderStatus;
+      const allowed = ["open", "in_progress", "closed"];
+      if (typeof status !== "string" || !allowed.includes(status)) {
+        return res.status(400).json({
+          error: `responderStatus must be one of: ${allowed.join(", ")}.`,
+        });
+      }
+
+      const doc = await Alert.findByIdAndUpdate(
+        req.params.id,
+        { responderStatus: status },
+        { new: true },
+      ).lean();
+
+      if (!doc) return res.status(404).json({ error: "Not found." });
+      res.json(doc);
+    } catch (err) {
+      console.error(err);
+      res.status(400).json({ error: "Invalid id." });
+    }
+  },
+);
+
+app.post("/api/alerts", optionalBearerJwt, async (req, res) => {
   const message =
     typeof req.body?.message === "string"
       ? req.body.message.trim()
@@ -86,9 +151,23 @@ app.post("/api/alerts", async (req, res) => {
     return res.status(400).json({ error: "Provide `message` (string)." });
   }
 
+  const location =
+    typeof req.body?.location === "string" ? req.body.location.trim() : "";
+  const modeRaw =
+    typeof req.body?.mode === "string" ? req.body.mode.trim().toLowerCase() : "";
+  const mode = modeRaw === "offline" ? "offline" : "online";
+
+  const loggedIn = Boolean(req.authUser?.sub);
+  const guestMode = !loggedIn;
+
   const alert = await Alert.create({
     rawMessage: message,
     processingStatus: "pending",
+    auth0UserId: loggedIn ? req.authUser.sub : null,
+    userEmail: loggedIn ? (req.authUser.email || "") : "",
+    guestMode,
+    location,
+    mode,
   });
 
   try {
@@ -169,4 +248,11 @@ try {
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`ReliefNet API listening on :${port}`);
+  if (authConfigured()) {
+    console.log("Auth0 JWT verification enabled for protected routes.");
+  } else {
+    console.log(
+      "Auth0 not configured (set AUTH0_ISSUER_BASE_URL + AUTH0_AUDIENCE to enforce login).",
+    );
+  }
 });
