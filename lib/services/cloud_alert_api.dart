@@ -21,11 +21,30 @@ class CloudAlertApi {
 
   final String baseUrl;
 
-  Uri _uri(String path) => Uri.parse('$baseUrl$path');
+  Uri _uri(String path, [Map<String, String>? query]) {
+    final root = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    final p = path.startsWith('/') ? path : '/$path';
+    return Uri.parse('$root$p').replace(queryParameters: query);
+  }
 
-  Future<List<CloudIncident>> listAlerts() async {
+  /// [severity] — optional server filter: `Critical`, `Medium`, or `Low`.
+  /// List is sorted by severity priority then newest first.
+  Future<List<CloudIncident>> listAlerts({
+    String? severity,
+    int limit = 200,
+  }) async {
+    final query = <String, String>{'limit': '$limit'};
+    if (severity != null &&
+        (severity == 'Critical' ||
+            severity == 'Medium' ||
+            severity == 'Low')) {
+      query['severity'] = severity;
+    }
+
     final res = await http.get(
-      _uri('/api/alerts'),
+      _uri('/api/alerts', query),
       headers: const {'Accept': 'application/json'},
     );
 
@@ -45,6 +64,31 @@ class CloudAlertApi {
         .whereType<Map>()
         .map((e) => CloudIncident.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+  }
+
+  Future<CloudIncident> getAlert(String id) async {
+    final res = await http.get(
+      _uri('/api/alerts/${Uri.encodeComponent(id)}'),
+      headers: const {'Accept': 'application/json'},
+    );
+
+    if (res.statusCode == 404) {
+      throw CloudAlertApiException('Incident not found.', statusCode: 404);
+    }
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw CloudAlertApiException(
+        _extractError(res.body) ?? 'Failed to load incident (${res.statusCode}).',
+        statusCode: res.statusCode,
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map) {
+      throw CloudAlertApiException('Unexpected incident payload.');
+    }
+
+    return CloudIncident.fromJson(Map<String, dynamic>.from(decoded));
   }
 
   Future<CloudIncident> submitAlert(String message) async {

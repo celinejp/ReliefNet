@@ -3,19 +3,59 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import { Alert } from "./models/Alert.js";
-import { categorizeIncident } from "./services/claudeCategorize.js";
+import { categorizeIncident } from "./services/geminiCategorize.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "64kb" }));
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, mongo: mongoose.connection.readyState === 1 });
+  res.json({
+    ok: true,
+    mongo: mongoose.connection.readyState === 1,
+    gemini: Boolean(process.env.GEMINI_API_KEY?.trim()),
+  });
 });
 
-app.get("/api/alerts", async (_req, res) => {
+app.get("/api/alerts", async (req, res) => {
   try {
-    const alerts = await Alert.find().sort({ createdAt: -1 }).limit(200).lean();
+    const severity =
+      typeof req.query.severity === "string" ? req.query.severity.trim() : "";
+    const validSeverity =
+      severity === "Critical" || severity === "Medium" || severity === "Low"
+        ? severity
+        : "";
+
+    const limitRaw = Number(req.query.limit);
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0 && limitRaw <= 500
+        ? Math.floor(limitRaw)
+        : 200;
+
+    const match = validSeverity ? { severity: validSeverity } : {};
+
+    const pipeline = [
+      { $match: match },
+      {
+        $addFields: {
+          _prio: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$severity", "Critical"] }, then: 0 },
+                { case: { $eq: ["$severity", "Medium"] }, then: 1 },
+                { case: { $eq: ["$severity", "Low"] }, then: 2 },
+              ],
+              default: 3,
+            },
+          },
+        },
+      },
+      { $sort: { _prio: 1, createdAt: -1 } },
+      { $limit: limit },
+      { $project: { _prio: 0 } },
+    ];
+
+    const alerts = await Alert.aggregate(pipeline);
     res.json(alerts);
   } catch (err) {
     console.error(err);

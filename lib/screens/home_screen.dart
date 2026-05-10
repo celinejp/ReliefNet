@@ -98,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Hybrid offline LAN alerts and online Claude triage — '
+                        'Hybrid offline LAN alerts and online Gemini triage — '
                         'built for HackDavis 2026.',
                         style: textTheme.bodyMedium?.copyWith(
                           color: Colors.white.withValues(alpha: 0.82),
@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconColor: colorScheme.error,
                   title: 'Submit SOS alert (online)',
                   subtitle:
-                      'Send to MongoDB + Claude when you have internet or LAN '
+                      'Send to MongoDB + Gemini when you have internet or LAN '
                       'reachability to the API.',
                   enabled: _hasNetwork,
                   onTap: () {
@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const _Bullet(
                   icon: Icons.psychology_alt_outlined,
                   text:
-                      'When online, Claude classifies severity and cleans noisy reports.',
+                      'When online, Gemini classifies severity and cleans noisy reports.',
                 ),
                 const _Bullet(
                   icon: Icons.merge_rounded,

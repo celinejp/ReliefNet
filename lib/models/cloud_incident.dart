@@ -27,7 +27,15 @@ class CloudIncident {
       return null;
     }
 
-    final id = json['_id']?.toString() ?? '';
+    final rawId = json['_id'];
+    final String id;
+    if (rawId is String) {
+      id = rawId;
+    } else if (rawId is Map && rawId[r'$oid'] is String) {
+      id = rawId[r'$oid'] as String;
+    } else {
+      id = rawId?.toString() ?? '';
+    }
 
     return CloudIncident(
       id: id,

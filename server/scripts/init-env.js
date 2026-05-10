@@ -38,5 +38,5 @@ if (!fs.existsSync(examplePath)) {
 fs.copyFileSync(examplePath, envPath);
 console.log(
   "Created .env from .env.example in this folder.\n" +
-    "Edit .env and set at least MONGODB_URI and ANTHROPIC_API_KEY.",
+    "Edit .env and set at least MONGODB_URI and GEMINI_API_KEY.",
 );

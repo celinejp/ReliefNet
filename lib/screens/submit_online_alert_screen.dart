@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/cloud_alert_api.dart';
 import '../widgets/severity_badge.dart';
+import 'alert_detail_screen.dart';
 
 class SubmitOnlineAlertScreen extends StatefulWidget {
   const SubmitOnlineAlertScreen({super.key});
@@ -50,8 +51,8 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
                       Expanded(
                         child: Text(
                           incident.processingStatus == 'failed'
-                              ? 'AI processing failed — saved with error.'
-                              : 'Claude triage complete.',
+                              ? 'Gemini processing failed — saved with error.'
+                              : 'Gemini triage complete.',
                           style: Theme.of(ctx).textTheme.bodyMedium,
                         ),
                       ),
@@ -86,6 +87,17 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
               ),
             ),
             actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AlertDetailScreen(alertId: incident.id),
+                    ),
+                  );
+                },
+                child: const Text('Open alert'),
+              ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: const Text('Done'),
@@ -133,7 +145,7 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Describe what is happening. Claude will classify severity and '
+                'Describe what is happening. Gemini will classify severity and '
                 'normalize your report for responders.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white.withValues(alpha: 0.78),
