@@ -1,8 +1,6 @@
-import 'dart:convert';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -212,7 +210,154 @@ class HomePage extends StatelessWidget {
     );
   }
 }
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.icon,
+    required this.label,
+    required this.stateLabel,
+  });
 
+  final IconData icon;
+  final String label;
+  final String stateLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: ReliefNetApp._brandDeep.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: scheme.secondary),
+          const SizedBox(width: 8),
+          Text(
+            '$label · ',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          Text(
+            stateLabel,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.iconBackground,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconBackground;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: iconBackground,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: iconColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white.withValues(alpha: 0.35),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Bullet extends StatelessWidget {
+  const _Bullet({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.secondary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    height: 1.45,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 class OfflineAlertScreen extends StatefulWidget {
   const OfflineAlertScreen({super.key});
 
@@ -221,12 +366,12 @@ class OfflineAlertScreen extends StatefulWidget {
 }
 
 class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
-  final TextEditingController _serverController = TextEditingController(text: 'http://192.168.1.100:3001');
+  static const String _serverUrl = 'http://192.168.137.1:3001';
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> _alerts = [];
-  IO.Socket? _socket;
+  socket_io.Socket? _socket;
   String _status = 'Disconnected';
   String _connectionType = 'unknown';
 
@@ -238,12 +383,12 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
         _connectionType = status.toString().split('.').last;
       });
     });
+    _connect();
   }
 
   @override
   void dispose() {
     _socket?.dispose();
-    _serverController.dispose();
     _nameController.dispose();
     _locationController.dispose();
     _messageController.dispose();
@@ -251,16 +396,12 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   }
 
   void _connect() {
-    final serverUrl = _serverController.text.trim();
-    if (serverUrl.isEmpty) {
-      _showSnackbar('Enter the laptop hub address first.');
-      return;
-    }
+    if (_socket?.connected == true) return;
 
     _socket?.dispose();
-    _socket = IO.io(
-      serverUrl,
-      IO.OptionBuilder()
+    _socket = socket_io.io(
+      _serverUrl,
+      socket_io.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
           .setReconnectionAttempts(5)
@@ -300,7 +441,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     _socket?.on('alert-received', (data) {
       if (data is Map) {
         setState(() {
-          _alerts.insert(0, Map<String, dynamic>.from(data as Map));
+          _alerts.insert(0, Map<String, dynamic>.from(data));
         });
       }
     });
@@ -328,6 +469,13 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       return;
     }
 
+    if (_socket == null || _socket?.connected != true) {
+      _showSnackbar('Connecting to hub...');
+      _connect();
+      Future.delayed(const Duration(milliseconds: 500), _sendAlert);
+      return;
+    }
+
     final alert = {
       'reporter': name,
       'location': location,
@@ -335,11 +483,6 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       'type': 'SOS',
       'timestamp': DateTime.now().toIso8601String(),
     };
-
-    if (_socket == null || _socket?.connected != true) {
-      _showSnackbar('Not connected to offline hub. Tap Connect first.');
-      return;
-    }
 
     _socket?.emit('new-alert', alert);
     _showSnackbar('Alert sent to laptop hub.');
@@ -360,7 +503,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -400,39 +543,13 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Connect to the laptop hub using the local IP address from your laptop. Then submit an SOS alert so the responder dashboard can show the report in real time.',
+                'Your emergency report will automatically connect to the offline hub and be recorded.',
                 style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
               ),
               const SizedBox(height: 20),
-              _statusChip('Socket.IO status', _status),
+              _statusChip('Hub status', _status),
               const SizedBox(height: 10),
-              _statusChip('Network type', _connectionType),
-              const SizedBox(height: 18),
-              TextField(
-                controller: _serverController,
-                decoration: const InputDecoration(
-                  labelText: 'Laptop hub address',
-                  hintText: 'http://192.168.x.x:3001',
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _connect,
-                      child: const Text('Connect'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _disconnect,
-                      child: const Text('Disconnect'),
-                    ),
-                  ),
-                ],
-              ),
+              _statusChip('Network', _connectionType),
               const SizedBox(height: 24),
               TextField(
                 controller: _nameController,
@@ -466,7 +583,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.04),
+                    color: Colors.white.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: const Text('No alerts received yet.'),

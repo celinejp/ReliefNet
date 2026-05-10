@@ -88,7 +88,8 @@ app.post('/alerts', (req, res) => {
 });
 
 const PORT = 3001;
-const HOST = '0.0.0.0';
+const HOST = '192.168.137.1'; // Hotspot IP - change if different
 server.listen(PORT, HOST, () => {
   console.log(`ReliefNet offline hub listening at http://${HOST}:${PORT}`);
+  console.log('Connect phones to WiFi: ReliefNetHub, password: reliefnet2026');
 });
