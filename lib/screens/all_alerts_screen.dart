@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
+import '../config/hub_config.dart';
 import '../models/cloud_incident.dart';
 import '../models/unified_alert.dart';
 import '../services/cloud_alert_api.dart';
@@ -22,7 +23,7 @@ class AllAlertsScreen extends StatefulWidget {
 }
 
 class _AllAlertsScreenState extends State<AllAlertsScreen> {
-  static const String _hubUrl = 'http://192.168.137.1:3001';
+  static const String _hubUrl = HubConfig.baseUrl;
 
   final _api = CloudAlertApi();
   final _store = LocalAlertStore();

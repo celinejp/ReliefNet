@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
+import '../config/hub_config.dart';
 import '../models/unified_alert.dart';
 import '../services/local_alert_store.dart';
 import '../services/session_controller.dart';
@@ -16,7 +17,7 @@ class OfflineAlertScreen extends StatefulWidget {
 }
 
 class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
-  static const String _serverUrl = 'http://192.168.137.1:3001';
+  static const String _serverUrl = HubConfig.baseUrl;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();

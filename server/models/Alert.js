@@ -17,7 +17,7 @@ const alertSchema = new mongoose.Schema(
     },
     aiError: { type: String, default: "" },
     auth0UserId: { type: String, default: null, index: true },
-    clientAlertId: { type: String, default: "", trim: true, index: true },
+    clientAlertId: { type: String, default: "", trim: true },
     userEmail: { type: String, default: "" },
     guestMode: { type: Boolean, default: false },
     location: { type: String, default: "", trim: true },

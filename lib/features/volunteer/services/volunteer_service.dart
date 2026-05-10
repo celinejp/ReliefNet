@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../config/api_config.dart';
 import '../models/need_model.dart';
 import '../models/volunteer_model.dart';
 import '../models/donation_model.dart';
 import '../models/match_model.dart';
 
 class VolunteerService {
-  static const String baseUrl = 'http://192.168.137.1:3000';
+  static const String baseUrl = ApiConfig.baseUrl;
 
   static Future<Map<String, dynamic>> submitNeed({
     required String name,

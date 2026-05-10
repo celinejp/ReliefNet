@@ -82,7 +82,8 @@ Bootstrap file: `npm run init-env` (from `server/`) copies `.env.example` → `.
 
 ## 5. Flutter app → API URL
 
-The app reads **`API_BASE_URL`** at compile time (default `http://127.0.0.1:3000`).
+The app reads **`API_BASE_URL`** at compile time
+(current default: `http://192.168.137.1:3000`).
 
 - **Simulator on same Mac as API:** default is fine.
 - **Physical iPhone → Vultr API** (example host):
@@ -95,6 +96,12 @@ Or use **`./scripts/run_ios.sh`** and append defines:
 
 ```bash
 ./scripts/run_ios.sh <device_id> --dart-define=API_BASE_URL=http://144.202.115.202:3000
+```
+
+Offline hub URL is also configurable at compile time:
+
+```bash
+flutter run -d <device_id> --dart-define=HUB_BASE_URL=http://192.168.137.1:3001
 ```
 
 **When code or API host changes:** rebuild / re-run with the correct `--dart-define`.

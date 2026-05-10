@@ -11,6 +11,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 API_BASE_URL="${API_BASE_URL:-http://144.202.115.202:3000}"
+HUB_BASE_URL="${HUB_BASE_URL:-http://192.168.137.1:3001}"
 AUTH0_DOMAIN="${AUTH0_DOMAIN:-dev-vbjhh7iok0ix176c.us.auth0.com}"
 AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID:-twxAyZTvWuYuqQKFf9MgCNtEJGhEhJy7}"
 AUTH0_AUDIENCE="${AUTH0_AUDIENCE:-https://reliefnet-api}"
@@ -25,6 +26,7 @@ flutter pub get
 
 DEFINES=(
   --dart-define=API_BASE_URL="$API_BASE_URL"
+  --dart-define=HUB_BASE_URL="$HUB_BASE_URL"
   --dart-define=AUTH0_DOMAIN="$AUTH0_DOMAIN"
   --dart-define=AUTH0_CLIENT_ID="$AUTH0_CLIENT_ID"
   --dart-define=AUTH0_AUDIENCE="$AUTH0_AUDIENCE"
