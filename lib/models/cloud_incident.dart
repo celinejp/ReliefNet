@@ -17,6 +17,7 @@ class CloudIncident {
     this.source,
     this.syncStatus,
     this.responderStatus,
+    this.clientAlertId,
   });
 
   final String id;
@@ -37,6 +38,7 @@ class CloudIncident {
   final String? source;
   final String? syncStatus;
   final String? responderStatus;
+  final String? clientAlertId;
 
   factory CloudIncident.fromJson(Map<String, dynamic> json) {
     DateTime? parseTs(dynamic v) {
@@ -74,6 +76,7 @@ class CloudIncident {
       source: json['source'] as String?,
       syncStatus: json['syncStatus'] as String?,
       responderStatus: json['responderStatus'] as String?,
+      clientAlertId: json['clientAlertId'] as String?,
     );
   }
 }

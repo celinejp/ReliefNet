@@ -10,6 +10,7 @@ class UnifiedAlert {
     this.location,
     this.severity,
     this.mode,
+    this.clientAlertId,
     this.isMine = false,
   });
 
@@ -23,6 +24,7 @@ class UnifiedAlert {
   final String source; // online_cloud | offline_hub | local_cache
   final String syncStatus; // pending | synced | failed
   final String? mode; // online | offline
+  final String? clientAlertId;
   final bool isMine;
 
   Map<String, dynamic> toJson() {
@@ -37,6 +39,7 @@ class UnifiedAlert {
       'source': source,
       'syncStatus': syncStatus,
       'mode': mode,
+      'clientAlertId': clientAlertId,
       'isMine': isMine,
     };
   }
@@ -54,6 +57,7 @@ class UnifiedAlert {
       source: json['source'] as String? ?? 'local_cache',
       syncStatus: json['syncStatus'] as String? ?? 'synced',
       mode: json['mode'] as String?,
+      clientAlertId: json['clientAlertId'] as String?,
       isMine: json['isMine'] as bool? ?? false,
     );
   }

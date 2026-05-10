@@ -183,6 +183,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
         source: 'offline_hub',
         syncStatus: 'pending',
         mode: 'offline',
+        clientAlertId: stableId,
         isMine: true,
       ),
     );

@@ -136,10 +136,11 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     final severity = (payload['severity'] as String? ?? '').trim();
 
     final rawHubId = (payload['id'] as String? ?? '').trim();
+    final normalizedHubId = rawHubId.isEmpty
+        ? 'hub_${created.microsecondsSinceEpoch}_${message.hashCode}'
+        : (rawHubId.startsWith('hub_') ? rawHubId : 'hub_$rawHubId');
     return UnifiedAlert(
-      id: rawHubId.isNotEmpty
-          ? 'hub_$rawHubId'
-          : 'hub_${created.microsecondsSinceEpoch}_${message.hashCode}',
+      id: normalizedHubId,
       userId: userId.isEmpty ? null : userId,
       userEmail: userEmail.isEmpty ? null : userEmail,
       message: message.isEmpty ? 'Offline hub alert' : message,
@@ -149,6 +150,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       source: 'offline_hub',
       syncStatus: 'pending',
       mode: 'offline',
+      clientAlertId: normalizedHubId,
       isMine: _isMine(userId, userEmail),
     );
   }
@@ -202,6 +204,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
                 source: 'local_cache',
                 syncStatus: e.syncStatus,
                 mode: e.mode,
+                clientAlertId: e.clientAlertId,
                 isMine: e.isMine,
               ),
             )
@@ -272,14 +275,19 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       source: c.source ?? 'online_cloud',
       syncStatus: c.syncStatus ?? 'synced',
       mode: c.mode,
+      clientAlertId: c.clientAlertId,
       isMine: _isMine(c.auth0UserId, c.userEmail),
     );
   }
 
   List<UnifiedAlert> get _merged {
     final map = <String, UnifiedAlert>{};
-    for (final a in _cachedAlerts) {
-      _upsertByFingerprint(map, a);
+    // Local cache is an offline fallback. When cloud is reachable, do not
+    // merge cached copies because they duplicate the same cloud records.
+    if (!_cloudAvailable) {
+      for (final a in _cachedAlerts) {
+        _upsertByFingerprint(map, a);
+      }
     }
     for (final a in _pendingHubAlerts) {
       _upsertByFingerprint(map, a);
@@ -290,6 +298,44 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     final list = map.values.toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
+  }
+
+  Future<void> _clearLocalAlertData() async {
+    final shouldClear = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Clear local alert data?'),
+            content: const Text(
+              'This removes cached feed alerts and pending offline hub queue from this phone only.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Clear'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!shouldClear) return;
+
+    await _store.writeUnifiedCache(const []);
+    await _store.writePendingHubAlerts(const []);
+    if (!_canUpdateUi) return;
+    _safeSetState(() {
+      _cachedAlerts = const [];
+      _pendingHubAlerts = const [];
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Local alert cache cleared.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   List<UnifiedAlert> _dedupe(List<UnifiedAlert> items) {
@@ -311,6 +357,10 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   }
 
   String _mergeKey(UnifiedAlert a) {
+    final clientAlertId = (a.clientAlertId ?? '').trim();
+    if (clientAlertId.isNotEmpty) {
+      return 'client:$clientAlertId';
+    }
     final id = a.id.trim();
     if (a.source == 'offline_hub' && a.syncStatus == 'synced') {
       // Collapse old duplicated cloud records from prior non-idempotent sync runs.
@@ -385,6 +435,11 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
       appBar: AppBar(
         title: const Text('All Alerts'),
         actions: [
+          IconButton(
+            onPressed: _clearLocalAlertData,
+            tooltip: 'Clear local alert cache',
+            icon: const Icon(Icons.delete_sweep_rounded),
+          ),
           IconButton(
             onPressed: _refreshAll,
             icon: const Icon(Icons.refresh_rounded),
