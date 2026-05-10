@@ -114,9 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool get _hasNetwork =>
       _connectivity.any((r) => r != ConnectivityResult.none);
 
-  bool get _onlineSosEnabled => !_hubLinked && _cloudReady;
+  bool get _onlineSosEnabled => _cloudReady;
 
-  bool get _offlineSosEnabled => _hubLinked && !_cloudReady;
+  bool get _offlineSosEnabled => _hubLinked;
 
   bool get _dashboardEligible =>
       !Auth0Config.isConfigured || SessionController.instance.isAuthenticated;
