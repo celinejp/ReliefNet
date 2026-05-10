@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import '../config/auth0_config.dart';
+import '../config/hub_config.dart';
 import '../features/person_report/screens/person_report_form_screen.dart';
 import '../features/person_report/screens/reports_display_screen.dart';
 import '../features/volunteer/screens/volunteer_dashboard_screen.dart';
@@ -26,27 +28,71 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   List<ConnectivityResult> _connectivity = const [ConnectivityResult.none];
+  final CloudAlertApi _api = CloudAlertApi();
+  socket_io.Socket? _hubSocket;
+  bool _cloudReady = false;
+  bool _hubLinked = false;
 
   @override
   void initState() {
     super.initState();
+    _connectHubSocket();
     Connectivity().checkConnectivity().then((v) async {
       if (!mounted) return;
       setState(() => _connectivity = v);
+      await _refreshCloudStatus(v);
       await _flushQueuedAlerts(v);
     });
     _connectivitySub = Connectivity().onConnectivityChanged.listen((v) async {
       if (!mounted) return;
       setState(() => _connectivity = v);
+      await _refreshCloudStatus(v);
       await _flushQueuedAlerts(v);
     });
+  }
+
+  void _connectHubSocket() {
+    _hubSocket?.dispose();
+    _hubSocket = socket_io.io(
+      HubConfig.baseUrl,
+      socket_io.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .setReconnectionAttempts(4)
+          .setReconnectionDelay(2000)
+          .build(),
+    );
+    _hubSocket?.onConnect((_) {
+      if (!mounted) return;
+      setState(() => _hubLinked = true);
+    });
+    _hubSocket?.onDisconnect((_) {
+      if (!mounted) return;
+      setState(() => _hubLinked = false);
+    });
+    _hubSocket?.onConnectError((_) {
+      if (!mounted) return;
+      setState(() => _hubLinked = false);
+    });
+    _hubSocket?.connect();
+  }
+
+  Future<void> _refreshCloudStatus(List<ConnectivityResult> statuses) async {
+    final hasNetwork = statuses.any((r) => r != ConnectivityResult.none);
+    if (!hasNetwork) {
+      if (!mounted) return;
+      setState(() => _cloudReady = false);
+      return;
+    }
+    final reachable = await _api.canReachServer();
+    if (!mounted) return;
+    setState(() => _cloudReady = reachable);
   }
 
   Future<void> _flushQueuedAlerts(List<ConnectivityResult> statuses) async {
     final online = statuses.any((r) => r != ConnectivityResult.none);
     if (!online) return;
-    final api = CloudAlertApi();
-    final n = await PendingCloudSync.flush(api);
+    final n = await PendingCloudSync.flush(_api);
     if (mounted && n > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -61,11 +107,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _hubSocket?.dispose();
     super.dispose();
   }
 
   bool get _hasNetwork =>
       _connectivity.any((r) => r != ConnectivityResult.none);
+
+  bool get _onlineSosEnabled => !_hubLinked && _cloudReady;
+
+  bool get _offlineSosEnabled => _hubLinked && !_cloudReady;
 
   bool get _dashboardEligible =>
       !Auth0Config.isConfigured || SessionController.instance.isAuthenticated;
@@ -173,7 +224,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final cloudDetail = _hasNetwork ? 'Online mode ready' : 'No network link';
+    final hubDetail = _hubLinked ? 'Linked' : 'Not linked';
+    final cloudDetail = _cloudReady ? 'Online mode ready' : 'Not ready';
 
     return Scaffold(
       body: CustomScrollView(
@@ -181,46 +233,6 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverAppBar.large(
             pinned: true,
             backgroundColor: ReliefNetApp.brandDeep,
-            centerTitle: true,
-            title: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(
-                    'logo_final_relief.png',
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'ReliefNet',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        offset: const Offset(0, 2),
-                        blurRadius: 6,
-                      ),
-                      Shadow(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .secondary
-                            .withValues(alpha: 0.28),
-                        offset: const Offset(0, 0),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
             actions: [
               if (Auth0Config.isConfigured)
                 PopupMenuButton<String>(
@@ -269,6 +281,47 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                Center(
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'logo_final_relief.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'ReliefNet',
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              offset: const Offset(0, 2),
+                              blurRadius: 6,
+                            ),
+                            Shadow(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondary
+                                  .withValues(alpha: 0.28),
+                              offset: const Offset(0, 0),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
@@ -303,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const _StatusChip(
                             icon: Icons.wifi_tethering_rounded,
                             label: 'Offline hub',
-                            stateLabel: 'Not linked',
+                            stateLabel: hubDetail,
                           ),
                           _StatusChip(
                             icon: Icons.cloud_outlined,
@@ -331,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconColor: colorScheme.error,
                   title: 'Submit SOS alert (online)',
                   subtitle: 'Send directly to cloud triage and responders.',
-                  enabled: _hasNetwork,
+                  enabled: _onlineSosEnabled,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -347,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   iconColor: colorScheme.error,
                   title: 'Submit SOS alert (offline)',
                   subtitle: 'Use laptop hub when internet is unavailable.',
-                  enabled: true,
+                  enabled: _offlineSosEnabled,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
