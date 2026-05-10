@@ -132,8 +132,11 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     final userId = (payload['auth0UserId'] as String? ?? '').trim();
     final severity = (payload['severity'] as String? ?? '').trim();
 
+    final rawHubId = (payload['id'] as String? ?? '').trim();
     return UnifiedAlert(
-      id: 'hub_${created.microsecondsSinceEpoch}_${message.hashCode}',
+      id: rawHubId.isNotEmpty
+          ? 'hub_$rawHubId'
+          : 'hub_${created.microsecondsSinceEpoch}_${message.hashCode}',
       userId: userId.isEmpty ? null : userId,
       userEmail: userEmail.isEmpty ? null : userEmail,
       message: message.isEmpty ? 'Offline hub alert' : message,
@@ -177,6 +180,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
           _pendingHubAlerts
               .map(
                 (e) => {
+                  'clientAlertId': e.id,
                   'message': e.message,
                   'location': e.location ?? '',
                   'userId': e.userId ?? '',
@@ -283,6 +287,10 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
 
   String _mergeKey(UnifiedAlert a) {
     final id = a.id.trim();
+    if (a.source == 'offline_hub' && a.syncStatus == 'synced') {
+      // Collapse old duplicated cloud records from prior non-idempotent sync runs.
+      return 'offline:${_fingerprint(a)}';
+    }
     if (id.isNotEmpty && !id.startsWith('hub_')) {
       return 'id:$id';
     }
@@ -310,8 +318,7 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
     final loc = (a.location ?? '').trim().toLowerCase();
     final email = (a.userEmail ?? '').trim().toLowerCase();
     final id = (a.userId ?? '').trim().toLowerCase();
-    final t = a.createdAt.toUtc().millisecondsSinceEpoch ~/ 1000;
-    return '$msg|$loc|$email|$id|$t';
+    return '$msg|$loc|$email|$id';
   }
 
   List<UnifiedAlert> get _visible {

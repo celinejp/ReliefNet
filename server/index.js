@@ -231,11 +231,14 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
           typeof raw?.userEmail === "string" ? raw.userEmail.trim() : "";
         const createdAtRaw = new Date(raw?.createdAt || now);
         const createdAt = Number.isNaN(createdAtRaw.getTime()) ? now : createdAtRaw;
+        const clientAlertId =
+          typeof raw?.clientAlertId === "string" ? raw.clientAlertId.trim() : "";
         const loggedIn = Boolean(req.authUser?.sub || userIdRaw);
         return {
           rawMessage: message,
           processingStatus: "pending",
           auth0UserId: req.authUser?.sub || userIdRaw || null,
+          clientAlertId,
           userEmail: req.authUser?.email || userEmailRaw || "",
           guestMode: !loggedIn,
           location,
@@ -266,8 +269,43 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
       }
     }
 
-    const inserted = await Alert.insertMany(docs, { ordered: false });
-    return res.status(201).json(inserted.map((d) => d.toObject()));
+    const result = [];
+    for (const doc of docs) {
+      if (doc.clientAlertId) {
+        // Idempotent sync: same clientAlertId updates existing instead of creating duplicates.
+        const updated = await Alert.findOneAndUpdate(
+          { clientAlertId: doc.clientAlertId },
+          {
+            $setOnInsert: {
+              rawMessage: doc.rawMessage,
+              auth0UserId: doc.auth0UserId,
+              clientAlertId: doc.clientAlertId,
+              userEmail: doc.userEmail,
+              guestMode: doc.guestMode,
+              location: doc.location,
+              mode: "offline",
+              source: "offline_hub",
+              createdAt: doc.createdAt,
+            },
+            $set: {
+              severity: doc.severity,
+              category: doc.category,
+              summary: doc.summary,
+              processingStatus: doc.processingStatus,
+              aiError: doc.aiError,
+              syncStatus: "synced",
+              updatedAt: new Date(),
+            },
+          },
+          { upsert: true, new: true },
+        ).lean();
+        result.push(updated);
+      } else {
+        const created = await Alert.create(doc);
+        result.push(created.toObject());
+      }
+    }
+    return res.status(201).json(result);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to sync offline alerts." });

@@ -4,6 +4,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
+import '../models/unified_alert.dart';
+import '../services/local_alert_store.dart';
 import '../services/session_controller.dart';
 
 class OfflineAlertScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  final LocalAlertStore _localStore = LocalAlertStore();
   final List<Map<String, dynamic>> _alerts = [];
   socket_io.Socket? _socket;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -121,7 +124,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
   }
 
-  void _sendAlert() {
+  Future<void> _sendAlert() async {
     final name = _nameController.text.trim();
     final location = _locationController.text.trim();
     final message = _messageController.text.trim();
@@ -134,7 +137,9 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     if (_socket == null || _socket?.connected != true) {
       _showSnackbar('Connecting to hub...');
       _connect();
-      Future.delayed(const Duration(milliseconds: 500), _sendAlert);
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _sendAlert();
+      });
       return;
     }
 
@@ -151,7 +156,28 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       'mode': 'offline',
     };
 
+    final now = DateTime.now();
+    final stableId = 'hub_${now.millisecondsSinceEpoch}_${message.hashCode}';
+    alert['id'] = stableId;
     _socket?.emit('new-alert', alert);
+    final pending = await _localStore.readPendingHubAlerts();
+    pending.insert(
+      0,
+      UnifiedAlert(
+        id: stableId,
+        userId: sess.cachedReporterAuth0Id,
+        userEmail: sess.userEmail,
+        message: message,
+        location: location,
+        severity: null,
+        createdAt: now,
+        source: 'offline_hub',
+        syncStatus: 'pending',
+        mode: 'offline',
+        isMine: true,
+      ),
+    );
+    await _localStore.writePendingHubAlerts(pending);
     _showSnackbar('Alert sent to laptop hub.');
     _nameController.clear();
     _locationController.clear();
