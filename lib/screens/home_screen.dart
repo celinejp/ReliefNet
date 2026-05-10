@@ -353,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          const _StatusChip(
+                          _StatusChip(
                             icon: Icons.wifi_tethering_rounded,
                             label: 'Offline hub',
                             stateLabel: hubDetail,
