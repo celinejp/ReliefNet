@@ -156,6 +156,26 @@ app.post("/api/alerts", optionalBearerJwt, async (req, res) => {
   const modeRaw =
     typeof req.body?.mode === "string" ? req.body.mode.trim().toLowerCase() : "";
   const mode = modeRaw === "offline" ? "offline" : "online";
+  const sourceRaw =
+    typeof req.body?.source === "string"
+      ? req.body.source.trim().toLowerCase()
+      : "";
+  const source =
+    sourceRaw === "offline_hub"
+      ? "offline_hub"
+      : sourceRaw === "local_cache"
+        ? "local_cache"
+        : "online_cloud";
+  const syncStatusRaw =
+    typeof req.body?.syncStatus === "string"
+      ? req.body.syncStatus.trim().toLowerCase()
+      : "";
+  const syncStatus =
+    syncStatusRaw === "pending"
+      ? "pending"
+      : syncStatusRaw === "failed"
+        ? "failed"
+        : "synced";
 
   const loggedIn = Boolean(req.authUser?.sub);
   const guestMode = !loggedIn;
@@ -168,6 +188,8 @@ app.post("/api/alerts", optionalBearerJwt, async (req, res) => {
     guestMode,
     location,
     mode,
+    source,
+    syncStatus,
   });
 
   try {
@@ -185,6 +207,70 @@ app.post("/api/alerts", optionalBearerJwt, async (req, res) => {
     alert.aiError = err instanceof Error ? err.message : String(err);
     await alert.save();
     return res.status(201).json(alert.toObject());
+  }
+});
+
+app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
+  try {
+    const alerts = Array.isArray(req.body?.alerts) ? req.body.alerts : [];
+    if (!alerts.length) {
+      return res.status(400).json({ error: "Provide `alerts` (non-empty array)." });
+    }
+
+    const now = new Date();
+    const docs = alerts
+      .map((raw) => {
+        const message =
+          typeof raw?.message === "string" ? raw.message.trim() : "";
+        if (!message) return null;
+        const location =
+          typeof raw?.location === "string" ? raw.location.trim() : "";
+        const userIdRaw =
+          typeof raw?.userId === "string" ? raw.userId.trim() : "";
+        const userEmailRaw =
+          typeof raw?.userEmail === "string" ? raw.userEmail.trim() : "";
+        const createdAtRaw = new Date(raw?.createdAt || now);
+        const createdAt = Number.isNaN(createdAtRaw.getTime()) ? now : createdAtRaw;
+        const loggedIn = Boolean(req.authUser?.sub || userIdRaw);
+        return {
+          rawMessage: message,
+          processingStatus: "pending",
+          auth0UserId: req.authUser?.sub || userIdRaw || null,
+          userEmail: req.authUser?.email || userEmailRaw || "",
+          guestMode: !loggedIn,
+          location,
+          mode: "offline",
+          source: "offline_hub",
+          syncStatus: "synced",
+          createdAt,
+          updatedAt: now,
+        };
+      })
+      .filter(Boolean);
+
+    if (!docs.length) {
+      return res.status(400).json({ error: "No valid alerts to sync." });
+    }
+
+    for (const doc of docs) {
+      try {
+        const ai = await categorizeIncident(doc.rawMessage);
+        doc.severity = ai.severity;
+        doc.category = ai.category;
+        doc.summary = ai.summary;
+        doc.processingStatus = "complete";
+        doc.aiError = "";
+      } catch (err) {
+        doc.processingStatus = "failed";
+        doc.aiError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    const inserted = await Alert.insertMany(docs, { ordered: false });
+    return res.status(201).json(inserted.map((d) => d.toObject()));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to sync offline alerts." });
   }
 });
 

@@ -25,6 +25,16 @@ const alertSchema = new mongoose.Schema(
       enum: ["online", "offline"],
       default: "online",
     },
+    source: {
+      type: String,
+      enum: ["online_cloud", "offline_hub", "local_cache"],
+      default: "online_cloud",
+    },
+    syncStatus: {
+      type: String,
+      enum: ["pending", "synced", "failed"],
+      default: "synced",
+    },
     responderStatus: {
       type: String,
       enum: ["open", "in_progress", "closed"],

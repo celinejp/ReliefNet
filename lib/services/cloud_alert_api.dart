@@ -114,8 +114,14 @@ class CloudAlertApi {
     required String message,
     String location = '',
     String mode = 'online',
+    String source = 'online_cloud',
+    String syncStatus = 'synced',
   }) async {
     final normalizedMode = mode.toLowerCase() == 'offline' ? 'offline' : 'online';
+    final normalizedSource =
+        source == 'offline_hub' || source == 'local_cache' ? source : 'online_cloud';
+    final normalizedSync =
+        syncStatus == 'pending' || syncStatus == 'failed' ? syncStatus : 'synced';
 
     final res = await http.post(
       _uri('/api/alerts'),
@@ -124,6 +130,8 @@ class CloudAlertApi {
         'message': message,
         'location': location,
         'mode': normalizedMode,
+        'source': normalizedSource,
+        'syncStatus': normalizedSync,
       }),
     );
 
@@ -182,6 +190,33 @@ class CloudAlertApi {
     }
 
     return CloudIncident.fromJson(Map<String, dynamic>.from(decoded));
+  }
+
+  Future<List<CloudIncident>> syncAlerts(
+    List<Map<String, dynamic>> alerts,
+  ) async {
+    final res = await http.post(
+      _uri('/api/sync-alerts'),
+      headers: await _headers(jsonBody: true),
+      body: jsonEncode({'alerts': alerts}),
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw CloudAlertApiException(
+        _extractError(res.body) ?? 'Failed to sync offline alerts (${res.statusCode}).',
+        statusCode: res.statusCode,
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! List) {
+      throw CloudAlertApiException('Unexpected sync payload.');
+    }
+
+    return decoded
+        .whereType<Map>()
+        .map((e) => CloudIncident.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   String? _extractError(String body) {

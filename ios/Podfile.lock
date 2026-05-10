@@ -1,22 +1,60 @@
 PODS:
+  - Auth0 (2.18.0):
+    - JWTDecode (= 3.3.0)
+    - SimpleKeychain (= 1.3.0)
+  - auth0_flutter (2.0.2):
+    - Auth0 (= 2.18.0)
+    - Flutter
+    - FlutterMacOS
+    - JWTDecode (= 3.3.0)
+    - SimpleKeychain (= 1.3.0)
   - connectivity_plus (0.0.1):
     - Flutter
   - Flutter (1.0.0)
+  - flutter_secure_storage_darwin (10.0.0):
+    - Flutter
+    - FlutterMacOS
+  - JWTDecode (3.3.0)
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - SimpleKeychain (1.3.0)
 
 DEPENDENCIES:
+  - auth0_flutter (from `.symlinks/plugins/auth0_flutter/darwin`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - Flutter (from `Flutter`)
+  - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+
+SPEC REPOS:
+  trunk:
+    - Auth0
+    - JWTDecode
+    - SimpleKeychain
 
 EXTERNAL SOURCES:
+  auth0_flutter:
+    :path: ".symlinks/plugins/auth0_flutter/darwin"
   connectivity_plus:
     :path: ".symlinks/plugins/connectivity_plus/ios"
   Flutter:
     :path: Flutter
+  flutter_secure_storage_darwin:
+    :path: ".symlinks/plugins/flutter_secure_storage_darwin/darwin"
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
 
 SPEC CHECKSUMS:
+  Auth0: ddc5c6c7eb17e2484fd8d50a15d99b657c36c72c
+  auth0_flutter: b5e9c66a99d29a522cd896a2a60d73d3a12dfbca
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
+  JWTDecode: 1ca6f765844457d0dd8690436860fecee788f631
+  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+  SimpleKeychain: 9c0f3ca8458fed74e01db864d181c5cbe278603e
 
-PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+PODFILE CHECKSUM: 6da890bbe05b889f0caf5c2c9898302644bfb9b8
 
 COCOAPODS: 1.16.2

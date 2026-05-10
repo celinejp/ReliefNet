@@ -11,6 +11,7 @@ import '../relief_net_app.dart';
 import '../services/cloud_alert_api.dart';
 import '../services/pending_cloud_sync.dart';
 import '../services/session_controller.dart';
+import 'all_alerts_screen.dart';
 import 'incident_dashboard_screen.dart';
 import 'offline_alert_screen.dart';
 import 'submit_online_alert_screen.dart';
@@ -265,6 +266,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const OfflineAlertScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
+                  icon: Icons.view_list_rounded,
+                  iconBackground: colorScheme.primary.withValues(alpha: 0.18),
+                  iconColor: colorScheme.primary,
+                  title: 'All alerts feed',
+                  subtitle:
+                      'Unified view: cloud alerts, offline hub alerts, and local cache.',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AllAlertsScreen(),
                       ),
                     );
                   },

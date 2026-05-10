@@ -14,6 +14,8 @@ class CloudIncident {
     this.guestMode,
     this.location,
     this.mode,
+    this.source,
+    this.syncStatus,
     this.responderStatus,
   });
 
@@ -32,6 +34,8 @@ class CloudIncident {
   final bool? guestMode;
   final String? location;
   final String? mode;
+  final String? source;
+  final String? syncStatus;
   final String? responderStatus;
 
   factory CloudIncident.fromJson(Map<String, dynamic> json) {
@@ -67,6 +71,8 @@ class CloudIncident {
       guestMode: guestRaw is bool ? guestRaw : null,
       location: json['location'] as String?,
       mode: json['mode'] as String?,
+      source: json['source'] as String?,
+      syncStatus: json['syncStatus'] as String?,
       responderStatus: json['responderStatus'] as String?,
     );
   }
