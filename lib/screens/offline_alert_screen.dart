@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
@@ -16,15 +18,20 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> _alerts = [];
   socket_io.Socket? _socket;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   String _status = 'Disconnected';
   String _connectionType = 'unknown';
 
   @override
   void initState() {
     super.initState();
-    Connectivity().onConnectivityChanged.listen((status) {
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((statuses) {
+      if (!mounted) return;
+      final first =
+          statuses.isEmpty ? ConnectivityResult.none : statuses.first;
       setState(() {
-        _connectionType = status.toString().split('.').last;
+        _connectionType = first.toString().split('.').last;
       });
     });
     _connect();
@@ -32,6 +39,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _socket?.dispose();
     _nameController.dispose();
     _locationController.dispose();
@@ -54,6 +62,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     );
 
     _socket?.onConnect((_) {
+      if (!mounted) return;
       setState(() {
         _status = 'Connected';
       });
@@ -61,12 +70,14 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.onDisconnect((_) {
+      if (!mounted) return;
       setState(() {
         _status = 'Disconnected';
       });
     });
 
     _socket?.onConnectError((data) {
+      if (!mounted) return;
       setState(() {
         _status = 'Connect error';
       });
@@ -74,6 +85,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.on('alerts', (data) {
+      if (!mounted) return;
       if (data is List) {
         setState(() {
           _alerts.clear();
@@ -83,6 +95,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.on('alert-received', (data) {
+      if (!mounted) return;
       if (data is Map) {
         setState(() {
           _alerts.insert(0, Map<String, dynamic>.from(data));
@@ -91,6 +104,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.connect();
+    if (!mounted) return;
     setState(() {
       _status = 'Connecting';
     });
