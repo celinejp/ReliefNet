@@ -8,6 +8,7 @@ import '../config/api_config.dart';
 import '../config/build_info.dart';
 import '../relief_net_app.dart';
 import 'incident_dashboard_screen.dart';
+import 'offline_alert_screen.dart';
 import 'submit_online_alert_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -56,8 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final cloudDetail =
-        _hasNetwork ? 'Online mode ready' : 'No network link';
+    final cloudDetail = _hasNetwork ? 'Online mode ready' : 'No network link';
 
     return Scaffold(
       body: CustomScrollView(
@@ -168,6 +168,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const SubmitOnlineAlertScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
+                  icon: Icons.wifi_off_rounded,
+                  iconBackground: colorScheme.error.withValues(alpha: 0.18),
+                  iconColor: colorScheme.error,
+                  title: 'Submit SOS alert offline',
+                  subtitle: 'LAN-only — connects to laptop hub over hotspot.',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const OfflineAlertScreen(),
                       ),
                     );
                   },
