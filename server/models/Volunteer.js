@@ -8,6 +8,7 @@ const VolunteerSchema = new mongoose.Schema({
     enum: ["food", "water", "medical", "transport", "shelter", "rescue", "other"],
   }],
   description: { type: String, default: "" },
+  photoUrl: { type: String, default: "" },
   locationText: { type: String, default: "" },
   coordinates: {
     lat: { type: Number, default: null },

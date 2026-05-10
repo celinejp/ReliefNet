@@ -125,6 +125,7 @@ class _NeedsList extends StatelessWidget {
           onTap: () => _showDetailSheet(
             context,
             title: 'Need details',
+            photoUrl: n.photoUrl,
             entries: [
               ('Name', n.name),
               ('Phone', n.phone),
@@ -174,6 +175,7 @@ class _VolunteersList extends StatelessWidget {
           onTap: () => _showDetailSheet(
             context,
             title: 'Volunteer details',
+            photoUrl: v.photoUrl,
             entries: [
               ('Name', v.name),
               ('Phone', v.phone),

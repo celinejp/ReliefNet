@@ -427,11 +427,15 @@ class _InlineReport extends StatelessWidget {
                     label: Text(report.reporterPhone),
                   ),
                 const Spacer(),
-                TextButton(
-                  onPressed: () => _showReportDetails(context, report, onCopyPhone),
-                  child: const Text(
-                    'More Info',
-                    style: TextStyle(fontSize: 12),
+                InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _showReportDetails(context, report, onCopyPhone),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: _unknownGrey,
+                    ),
                   ),
                 ),
               ],
@@ -521,11 +525,15 @@ class _ReportCard extends StatelessWidget {
             ),
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => _showReportDetails(context, report, onCopyPhone),
-                child: const Text(
-                  'More Info',
-                  style: TextStyle(fontSize: 12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _showReportDetails(context, report, onCopyPhone),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: _unknownGrey,
+                  ),
                 ),
               ),
             ),

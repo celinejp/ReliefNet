@@ -5,6 +5,7 @@ class NeedModel {
   final List<String> categories;
   final String urgency;
   final String description;
+  final String photoUrl;
   final String locationText;
   final String status;
   final DateTime createdAt;
@@ -16,6 +17,7 @@ class NeedModel {
     required this.categories,
     required this.urgency,
     required this.description,
+    required this.photoUrl,
     required this.locationText,
     required this.status,
     required this.createdAt,
@@ -29,6 +31,7 @@ class NeedModel {
       categories: List<String>.from(json['categories'] ?? []),
       urgency: json['urgency'] ?? 'normal',
       description: json['description'] ?? '',
+      photoUrl: json['photoUrl'] ?? '',
       locationText: json['locationText'] ?? '',
       status: json['status'] ?? 'unmatched',
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),

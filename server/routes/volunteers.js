@@ -1,11 +1,39 @@
 import express from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import Need from "../models/Need.js";
 import Volunteer from "../models/Volunteer.js";
 import { runVolunteerMatching } from "../services/volunteerMatcher.js";
 
 const router = express.Router();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) =>
+    cb(null, `${Date.now()}${path.extname(file.originalname)}`),
+});
+const upload = multer({ storage });
 
-router.post("/needs", async (req, res) => {
+function parseCategories(raw) {
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  if (typeof raw !== "string") return [];
+  const v = raw.trim();
+  if (!v) return [];
+  try {
+    const parsed = JSON.parse(v);
+    if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+  } catch {}
+  return v.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+router.post("/needs", upload.single("photo"), async (req, res) => {
   try {
     console.log("POST /api/needs — body:", req.body);
     const { name, phone, categories, urgency, description, locationText, lat, lng, numberOfPeople } = req.body;
@@ -13,9 +41,10 @@ router.post("/needs", async (req, res) => {
     const need = await Need.create({
       name,
       phone,
-      categories: categories || [],
+      categories: parseCategories(categories),
       urgency: urgency || "normal",
       description: description || "",
+      photoUrl: req.file ? `/uploads/${req.file.filename}` : "",
       locationText: locationText || "",
       coordinates: {
         lat: lat ? parseFloat(lat) : null,
@@ -45,7 +74,7 @@ router.get("/needs", async (req, res) => {
   }
 });
 
-router.post("/volunteers", async (req, res) => {
+router.post("/volunteers", upload.single("photo"), async (req, res) => {
   try {
     console.log("POST /api/volunteers — body:", req.body);
     const { name, phone, categories, description, locationText, lat, lng, capacity } = req.body;
@@ -53,8 +82,9 @@ router.post("/volunteers", async (req, res) => {
     const volunteer = await Volunteer.create({
       name,
       phone,
-      categories: categories || [],
+      categories: parseCategories(categories),
       description: description || "",
+      photoUrl: req.file ? `/uploads/${req.file.filename}` : "",
       locationText: locationText || "",
       coordinates: {
         lat: lat ? parseFloat(lat) : null,

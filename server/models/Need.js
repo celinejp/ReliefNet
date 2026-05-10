@@ -13,6 +13,7 @@ const NeedSchema = new mongoose.Schema({
     default: "normal",
   },
   description: { type: String, default: "" },
+  photoUrl: { type: String, default: "" },
   locationText: { type: String, default: "" },
   coordinates: {
     lat: { type: Number, default: null },

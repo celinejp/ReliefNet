@@ -28,23 +28,24 @@ class VolunteerService {
     double? lat,
     double? lng,
     int numberOfPeople = 1,
+    File? photo,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/needs'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': name,
-          'phone': phone,
-          'categories': categories,
-          'urgency': urgency,
-          'description': description,
-          'locationText': locationText,
-          'lat': lat,
-          'lng': lng,
-          'numberOfPeople': numberOfPeople,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/needs'));
+      request.fields['name'] = name;
+      request.fields['phone'] = phone;
+      request.fields['categories'] = jsonEncode(categories);
+      request.fields['urgency'] = urgency;
+      request.fields['description'] = description;
+      request.fields['locationText'] = locationText;
+      request.fields['numberOfPeople'] = numberOfPeople.toString();
+      if (lat != null) request.fields['lat'] = lat.toString();
+      if (lng != null) request.fields['lng'] = lng.toString();
+      if (photo != null) {
+        request.files.add(await http.MultipartFile.fromPath('photo', photo.path));
+      }
+      final streamed = await request.send().timeout(const Duration(seconds: 15));
+      final response = await http.Response.fromStream(streamed);
       return jsonDecode(response.body);
     } catch (e) {
       print('submitNeed error: $e');
@@ -61,22 +62,24 @@ class VolunteerService {
     double? lat,
     double? lng,
     int capacity = 1,
+    File? photo,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/volunteers'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': name,
-          'phone': phone,
-          'categories': categories,
-          'description': description,
-          'locationText': locationText,
-          'lat': lat,
-          'lng': lng,
-          'capacity': capacity,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$baseUrl/api/volunteers'));
+      request.fields['name'] = name;
+      request.fields['phone'] = phone;
+      request.fields['categories'] = jsonEncode(categories);
+      request.fields['description'] = description;
+      request.fields['locationText'] = locationText;
+      request.fields['capacity'] = capacity.toString();
+      if (lat != null) request.fields['lat'] = lat.toString();
+      if (lng != null) request.fields['lng'] = lng.toString();
+      if (photo != null) {
+        request.files.add(await http.MultipartFile.fromPath('photo', photo.path));
+      }
+      final streamed = await request.send().timeout(const Duration(seconds: 15));
+      final response = await http.Response.fromStream(streamed);
       return jsonDecode(response.body);
     } catch (e) {
       print('submitVolunteer error: $e');
@@ -127,7 +130,14 @@ class VolunteerService {
       ).timeout(const Duration(seconds: 10));
       final data = jsonDecode(response.body);
       if (data['success']) {
-        return (data['needs'] as List).map((n) => NeedModel.fromJson(n)).toList();
+        return (data['needs'] as List)
+            .map((n) {
+              final normalized = Map<String, dynamic>.from(n);
+              normalized['photoUrl'] =
+                  _absolutePhotoUrl('${normalized['photoUrl'] ?? ''}');
+              return NeedModel.fromJson(normalized);
+            })
+            .toList();
       }
       return [];
     } catch (e) {
@@ -144,7 +154,12 @@ class VolunteerService {
       final data = jsonDecode(response.body);
       if (data['success']) {
         return (data['volunteers'] as List)
-            .map((v) => VolunteerModel.fromJson(v))
+            .map((v) {
+              final normalized = Map<String, dynamic>.from(v);
+              normalized['photoUrl'] =
+                  _absolutePhotoUrl('${normalized['photoUrl'] ?? ''}');
+              return VolunteerModel.fromJson(normalized);
+            })
             .toList();
       }
       return [];

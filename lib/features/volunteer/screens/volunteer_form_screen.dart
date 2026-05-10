@@ -217,6 +217,7 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
       lat: _lat,
       lng: _lng,
       numberOfPeople: _numberOfPeople,
+      photo: _photo,
     );
     if (!mounted) return;
     setState(() => _loading = false);
@@ -243,6 +244,7 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
       lat: _lat,
       lng: _lng,
       capacity: _capacity,
+      photo: _photo,
     );
     if (!mounted) return;
     setState(() => _loading = false);
