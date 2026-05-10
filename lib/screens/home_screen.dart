@@ -110,6 +110,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _onPullToRefresh() async {
+    try {
+      final v = await Connectivity().checkConnectivity();
+      if (!mounted) return;
+      setState(() => _connectivity = v);
+      _connectHubSocket();
+      await _refreshCloudStatus(v);
+      await _flushQueuedAlerts(v);
+    } catch (_) {
+      if (mounted) {
+        await _refreshCloudStatus(_connectivity);
+      }
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -243,8 +258,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final cloudDetail = _cloudReady ? 'Online mode ready' : 'Not ready';
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: _onPullToRefresh,
+        color: colorScheme.primary,
+        backgroundColor: ReliefNetApp.brandDeep,
+        displacement: 64,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           SliverAppBar(
             pinned: true,
             backgroundColor: ReliefNetApp.brandDeep,
@@ -466,6 +487,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
         ],
+        ),
       ),
     );
   }
