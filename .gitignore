@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Node / person_identification feature
+**/.env
+**/node_modules/
+person_identification/server/uploads/*
+!person_identification/server/uploads/.gitkeep
