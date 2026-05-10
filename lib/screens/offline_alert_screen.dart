@@ -268,7 +268,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ReliefNet Offline Hub'),
+        title: const Text('AlertU Offline Hub'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),

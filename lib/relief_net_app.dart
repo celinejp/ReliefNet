@@ -61,7 +61,7 @@ class ReliefNetApp extends StatelessWidget {
         }
 
         return MaterialApp(
-          title: 'ReliefNet',
+          title: 'AlertU',
           debugShowCheckedModeBanner: false,
           theme: theme,
           home: home,

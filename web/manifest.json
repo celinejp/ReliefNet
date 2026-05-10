@@ -1,6 +1,6 @@
 {
-    "name": "relief_net",
-    "short_name": "relief_net",
+    "name": "AlertU",
+    "short_name": "AlertU",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

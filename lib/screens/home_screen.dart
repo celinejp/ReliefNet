@@ -331,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'ReliefNet',
+                        'AlertU',
                         style: TextStyle(
                           fontSize: 40,
                           fontWeight: FontWeight.w900,

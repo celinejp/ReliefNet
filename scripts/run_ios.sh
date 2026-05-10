@@ -4,6 +4,10 @@
 # Also passes Auth0 + API + offline-hub defaults
 # (override API_BASE_URL / HUB_BASE_URL via env if needed).
 #
+# Defaults to PROFILE build so iOS can open the app from Home without USB
+# (debug builds show "launch from Flutter tooling" on iOS 14+).
+# For debug + hot reload: RELIEFNET_IOS_DEBUG=1 ./scripts/run_ios.sh <device_id>
+#
 # Usage:
 #   ./scripts/run_ios.sh <flutter_device_id> [extra flutter args...]
 # Example:
@@ -28,6 +32,16 @@ AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID:-twxAyZTvWuYuqQKFf9MgCNtEJGhEhJy7}"
 AUTH0_AUDIENCE="${AUTH0_AUDIENCE:-https://reliefnet-api}"
 AUTH0_SCHEME="${AUTH0_SCHEME:-reliefnet}"
 
+# IOS run flavor: profile (default), release, or debug
+IOS_RUN_EXTRA=()
+if [[ "${RELIEFNET_IOS_DEBUG:-}" == "1" ]]; then
+  IOS_RUN_EXTRA=()
+elif [[ "${RELIEFNET_IOS_RELEASE:-}" == "1" ]]; then
+  IOS_RUN_EXTRA=(--release)
+else
+  IOS_RUN_EXTRA=(--profile)
+fi
+
 DEVICE="${1:-}"
 if [[ -n "${DEVICE:-}" ]]; then
   shift
@@ -39,12 +53,23 @@ LABEL="${BR}@${SH}"
 
 echo "Branch: $BR  commit: $SH  BUILD_LABEL=$LABEL"
 
-flutter clean
+if [[ "${RELIEFNET_SKIP_CLEAN:-}" == "1" ]]; then
+  echo "(Skipping flutter clean — set RELIEFNET_SKIP_CLEAN=0 or unset for full clean)"
+else
+  flutter clean
+fi
 flutter pub get
 ( cd ios && pod install )
 
 if [[ -n "${DEVICE:-}" ]]; then
   echo ""
+  if [[ "${RELIEFNET_IOS_DEBUG:-}" == "1" ]]; then
+    echo "Build: debug (hot reload; iOS may require USB / tooling to relaunch)"
+  elif [[ "${RELIEFNET_IOS_RELEASE:-}" == "1" ]]; then
+    echo "Build: release"
+  else
+    echo "Build: profile (open from Home without USB)"
+  fi
   echo "Dart defines (verify vs Auth0 Application → Settings):"
   echo "  API_BASE_URL=$API_BASE_URL"
   echo "  HUB_BASE_URL=$HUB_BASE_URL"
@@ -53,7 +78,13 @@ if [[ -n "${DEVICE:-}" ]]; then
   echo "  AUTH0_AUDIENCE=$AUTH0_AUDIENCE"
   echo "  AUTH0_SCHEME=$AUTH0_SCHEME"
   echo ""
+  if [[ "${RELIEFNET_IOS_DEBUG:-}" != "1" ]]; then
+    echo "Tip: After install, unplug USB and open AlertU from the Home screen."
+    echo "     \"Lost connection to device\" from flutter run is normal for profile/release."
+    echo ""
+  fi
   exec flutter run -d "$DEVICE" \
+    "${IOS_RUN_EXTRA[@]}" \
     --dart-define=BUILD_LABEL="$LABEL" \
     --dart-define=API_BASE_URL="$API_BASE_URL" \
     --dart-define=HUB_BASE_URL="$HUB_BASE_URL" \
@@ -67,5 +98,6 @@ fi
 echo "Pick a device:"
 flutter devices
 echo ""
-echo "Then run: ./scripts/run_ios.sh <device_id>"
+echo "Then run: ./scripts/run_ios.sh <device_id>   (defaults to --profile)"
+echo "(Debug + hot reload: RELIEFNET_IOS_DEBUG=1 ./scripts/run_ios.sh <device_id>)"
 echo "(Optional: API_BASE_URL=http://host:3000 ./scripts/run_ios.sh <device_id>)"

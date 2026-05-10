@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.reliefnet.app" "\0"
-            VALUE "FileDescription", "relief_net" "\0"
+            VALUE "FileDescription", "AlertU" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "relief_net" "\0"
+            VALUE "InternalName", "AlertU" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.reliefnet.app. All rights reserved." "\0"
             VALUE "OriginalFilename", "relief_net.exe" "\0"
-            VALUE "ProductName", "relief_net" "\0"
+            VALUE "ProductName", "AlertU" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

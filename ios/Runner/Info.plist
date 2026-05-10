@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>ReliefNet</string>
+	<string>AlertU</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,7 +25,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>ReliefNet uses your local network to reach the emergency hub when internet is unavailable.</string>
+	<string>AlertU uses your local network to reach the emergency hub when internet is unavailable.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_reliefnet._tcp</string>
@@ -53,11 +53,11 @@
 		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>ReliefNet uses the camera to attach a photo for missing-person reports.</string>
+	<string>AlertU uses the camera to attach a photo for missing-person reports.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>ReliefNet accesses your photo library so you can upload report photos.</string>
+	<string>AlertU accesses your photo library so you can upload report photos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>ReliefNet may save captured photos to your library for report evidence.</string>
+	<string>AlertU may save captured photos to your library for report evidence.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

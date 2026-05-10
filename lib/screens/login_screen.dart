@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'ReliefNet',
+                            'AlertU',
                             style: textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),

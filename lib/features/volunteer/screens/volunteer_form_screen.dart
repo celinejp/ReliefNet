@@ -284,7 +284,7 @@ class _VolunteerFormScreenState extends State<VolunteerFormScreen>
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        title: const Text('Volunteer & Relief',
+        title: const Text('Volunteer & Aid',
             style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: _bg,
         foregroundColor: Colors.white,

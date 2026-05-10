@@ -63,7 +63,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen>
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        title: const Text('Relief Dashboard',
+        title: const Text('AlertU Dashboard',
             style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: _bg,
         foregroundColor: Colors.white,
