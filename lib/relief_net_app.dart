@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+import 'services/session_controller.dart';
 
 class ReliefNetApp extends StatelessWidget {
   const ReliefNetApp({super.key});
@@ -38,11 +40,33 @@ class ReliefNetApp extends StatelessWidget {
       ),
     );
 
-    return MaterialApp(
-      title: 'ReliefNet',
-      debugShowCheckedModeBanner: false,
-      theme: theme,
-      home: const HomeScreen(),
+    return AnimatedBuilder(
+      animation: SessionController.instance,
+      builder: (context, _) {
+        final session = SessionController.instance;
+        Widget home;
+        if (!session.ready) {
+          home = Scaffold(
+            backgroundColor: brandDeep,
+            body: Center(
+              child: CircularProgressIndicator(
+                color: colorScheme.primary,
+              ),
+            ),
+          );
+        } else if (session.showLoginGate) {
+          home = const LoginScreen();
+        } else {
+          home = const HomeScreen();
+        }
+
+        return MaterialApp(
+          title: 'ReliefNet',
+          debugShowCheckedModeBanner: false,
+          theme: theme,
+          home: home,
+        );
+      },
     );
   }
 }

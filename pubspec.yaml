@@ -39,6 +39,9 @@ dependencies:
   socket_io_client: ^2.0.0
   http: ^1.6.0
   connectivity_plus: ^7.1.1
+  auth0_flutter: ^2.0.2
+  flutter_secure_storage: ^10.1.0
+  shared_preferences: ^2.5.5
   image_picker: ^1.0.7
   geolocator: ^11.0.0
   speech_to_text: ^7.0.0

@@ -29,6 +29,7 @@ migrate_working_dir/
 .env
 .env.local
 .env.*.local
+**/.env
 *.pem
 *.p12
 *.key
@@ -59,8 +60,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Node / person_identification feature
-**/.env
+# Node dependencies
+/node_modules/
 **/node_modules/
+
+# Runtime alert stores and upload artifacts
+/alerts.json
 person_identification/server/uploads/*
 !person_identification/server/uploads/.gitkeep

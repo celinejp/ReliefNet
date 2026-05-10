@@ -4,6 +4,10 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
+import '../models/unified_alert.dart';
+import '../services/local_alert_store.dart';
+import '../services/session_controller.dart';
+
 class OfflineAlertScreen extends StatefulWidget {
   const OfflineAlertScreen({super.key});
 
@@ -16,23 +20,37 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  final LocalAlertStore _localStore = LocalAlertStore();
   final List<Map<String, dynamic>> _alerts = [];
   socket_io.Socket? _socket;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
-  Map<String, dynamic>? _pendingAlert;
+  _PendingOfflineAlert? _pendingAlert;
   String _status = 'Disconnected';
   String _connectionType = 'unknown';
-  bool _isDisposed = false;
+  bool _disposing = false;
 
-  bool get _isActive => mounted && !_isDisposed;
+  bool get _canUpdateUi => mounted && !_disposing;
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_canUpdateUi) return;
+    setState(fn);
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sess = SessionController.instance;
+      if (!mounted) return;
+      if (sess.isAuthenticated && _nameController.text.trim().isEmpty) {
+        final hint = (sess.userEmail ?? sess.userSub ?? '').trim();
+        if (hint.isNotEmpty) _nameController.text = hint;
+      }
+    });
     _connectivitySub = Connectivity().onConnectivityChanged.listen((statuses) {
-      if (!_isActive) return;
+      if (!_canUpdateUi) return;
       final first = statuses.isEmpty ? ConnectivityResult.none : statuses.first;
-      setState(() {
+      _safeSetState(() {
         _connectionType = first.toString().split('.').last;
       });
     });
@@ -41,7 +59,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
 
   @override
   void dispose() {
-    _isDisposed = true;
+    _disposing = true;
     _connectivitySub?.cancel();
     _disposeSocket();
     _nameController.dispose();
@@ -60,7 +78,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   }
 
   void _connect() {
-    if (!_isActive) return;
+    if (!_canUpdateUi) return;
     if (_socket?.connected == true) return;
 
     _disposeSocket();
@@ -79,8 +97,8 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     );
 
     _socket?.onConnect((_) {
-      if (!_isActive) return;
-      setState(() {
+      if (!_canUpdateUi) return;
+      _safeSetState(() {
         _status = 'Connected';
       });
       _socket?.emit('subscribe', {'client': 'reliefnet-app'});
@@ -88,24 +106,24 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.onDisconnect((_) {
-      if (!_isActive) return;
-      setState(() {
+      if (!_canUpdateUi) return;
+      _safeSetState(() {
         _status = 'Disconnected';
       });
     });
 
     _socket?.onConnectError((data) {
-      if (!_isActive) return;
-      setState(() {
+      if (!_canUpdateUi) return;
+      _safeSetState(() {
         _status = 'Connect error';
       });
       _showSnackbar('Connection failed. Check laptop IP and hotspot network.');
     });
 
     _socket?.on('alerts', (data) {
-      if (!_isActive) return;
+      if (!_canUpdateUi) return;
       if (data is List) {
-        setState(() {
+        _safeSetState(() {
           _alerts.clear();
           _alerts.addAll(
             data
@@ -117,22 +135,21 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.on('alert-received', (data) {
-      if (!_isActive) return;
+      if (!_canUpdateUi) return;
       if (data is Map) {
-        setState(() {
+        _safeSetState(() {
           _alerts.insert(0, Map<String, dynamic>.from(data));
         });
       }
     });
 
-    if (!_isActive) return;
-    setState(() {
+    _safeSetState(() {
       _status = 'Connecting';
     });
     _socket?.connect();
   }
 
-  void _sendAlert() {
+  Future<void> _sendAlert() async {
     final name = _nameController.text.trim();
     final location = _locationController.text.trim();
     final message = _messageController.text.trim();
@@ -142,34 +159,71 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       return;
     }
 
+    final sess = SessionController.instance;
+    final now = DateTime.now();
+    final stableId = 'hub_${now.millisecondsSinceEpoch}_${message.hashCode}';
     final alert = {
+      'id': stableId,
       'reporter': name,
       'location': location,
       'message': message,
       'type': 'SOS',
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': now.toIso8601String(),
+      'auth0UserId': sess.cachedReporterAuth0Id,
+      'userEmail': sess.userEmail,
+      'guestMode': sess.isGuest,
+      'mode': 'offline',
     };
 
+    final pending = _PendingOfflineAlert(
+      alert: alert,
+      stableId: stableId,
+      userId: sess.cachedReporterAuth0Id,
+      userEmail: sess.userEmail,
+      message: message,
+      location: location,
+      createdAt: now,
+    );
+
     if (_socket == null || _socket?.connected != true) {
-      _pendingAlert = alert;
+      _pendingAlert = pending;
       _showSnackbar('Connecting to hub...');
       _connect();
       return;
     }
 
-    _emitAlert(alert);
+    await _emitAlert(pending);
   }
 
-  void _sendPendingAlert() {
-    final alert = _pendingAlert;
-    if (alert == null || _socket?.connected != true) return;
+  Future<void> _sendPendingAlert() async {
+    final pending = _pendingAlert;
+    if (pending == null || _socket?.connected != true) return;
 
     _pendingAlert = null;
-    _emitAlert(alert);
+    await _emitAlert(pending);
   }
 
-  void _emitAlert(Map<String, dynamic> alert) {
-    _socket?.emit('new-alert', alert);
+  Future<void> _emitAlert(_PendingOfflineAlert pending) async {
+    _socket?.emit('new-alert', pending.alert);
+    final saved = await _localStore.readPendingHubAlerts();
+    saved.insert(
+      0,
+      UnifiedAlert(
+        id: pending.stableId,
+        userId: pending.userId,
+        userEmail: pending.userEmail,
+        message: pending.message,
+        location: pending.location,
+        severity: null,
+        createdAt: pending.createdAt,
+        source: 'offline_hub',
+        syncStatus: 'pending',
+        mode: 'offline',
+        clientAlertId: pending.stableId,
+        isMine: true,
+      ),
+    );
+    await _localStore.writePendingHubAlerts(saved);
     _showSnackbar('Alert sent to laptop hub.');
     _nameController.clear();
     _locationController.clear();
@@ -177,7 +231,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   }
 
   void _showSnackbar(String text) {
-    if (!_isActive) return;
+    if (!_canUpdateUi) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
@@ -253,14 +307,18 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _locationController,
-                decoration: const InputDecoration(labelText: 'Location / landmark'),
+                decoration: const InputDecoration(
+                  labelText: 'Location / landmark',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _messageController,
                 minLines: 3,
                 maxLines: 5,
-                decoration: const InputDecoration(labelText: 'Emergency message'),
+                decoration: const InputDecoration(
+                  labelText: 'Emergency message',
+                ),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
@@ -338,4 +396,24 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       ),
     );
   }
+}
+
+class _PendingOfflineAlert {
+  const _PendingOfflineAlert({
+    required this.alert,
+    required this.stableId,
+    required this.userId,
+    required this.userEmail,
+    required this.message,
+    required this.location,
+    required this.createdAt,
+  });
+
+  final Map<String, dynamic> alert;
+  final String stableId;
+  final String? userId;
+  final String? userEmail;
+  final String message;
+  final String location;
+  final DateTime createdAt;
 }

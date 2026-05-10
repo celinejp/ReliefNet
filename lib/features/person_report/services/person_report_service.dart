@@ -7,7 +7,7 @@ import '../models/person_group_model.dart';
 import '../models/person_report_model.dart';
 
 class PersonReportService {
-  static const String baseUrl = 'http://10.0.2.2:3000';
+  static const String baseUrl = 'http://192.168.137.1:3000';
 
   static Future<bool> submitReport({
     required String reportType,

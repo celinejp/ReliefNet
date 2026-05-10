@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/cloud_alert_api.dart';
+import '../services/pending_cloud_sync.dart';
 import '../widgets/severity_badge.dart';
 import 'alert_detail_screen.dart';
 
@@ -12,7 +13,8 @@ class SubmitOnlineAlertScreen extends StatefulWidget {
 }
 
 class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
-  final _controller = TextEditingController();
+  final _messageController = TextEditingController();
+  final _locationController = TextEditingController();
   final _api = CloudAlertApi();
   final _formKey = GlobalKey<FormState>();
 
@@ -20,7 +22,8 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _messageController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -30,8 +33,16 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _submitting = true);
 
+    final message = _messageController.text.trim();
+    final location = _locationController.text.trim();
+
     try {
-      final incident = await _api.submitAlert(_controller.text.trim());
+      final incident = await _api.submitAlert(
+        message: message,
+        location: location,
+        mode: 'online',
+      );
+      await PendingCloudSync.flush(_api);
       if (!mounted) return;
 
       await showDialog<void>(
@@ -107,20 +118,50 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
         },
       );
 
-      if (mounted) _controller.clear();
+      if (mounted) {
+        _messageController.clear();
+        _locationController.clear();
+      }
     } on CloudAlertApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      final retryable =
+          e.statusCode == null || e.statusCode == 408 || e.statusCode! >= 500;
+      if (retryable || e.message.toLowerCase().contains('socket')) {
+        await PendingCloudSync.enqueue(
+          message: message,
+          location: location,
+          mode: 'online',
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not reach the cloud (${e.message}). '
+              'Queued locally — will retry when you are back online.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } catch (e) {
+      await PendingCloudSync.enqueue(
+        message: message,
+        location: location,
+        mode: 'online',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Network error: $e'),
+          content: Text(
+            'Network error — queued for sync: $e',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -153,9 +194,21 @@ class _SubmitOnlineAlertScreenState extends State<SubmitOnlineAlertScreen> {
                     ),
               ),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: 'Location / landmark',
+                  hintText: 'e.g. Russell Blvd near campus',
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               Expanded(
                 child: TextFormField(
-                  controller: _controller,
+                  controller: _messageController,
                   maxLines: null,
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
