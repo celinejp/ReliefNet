@@ -242,6 +242,14 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
       return `sync_${digest}`;
     };
 
+    const normalizeClientAlertId = (value) => {
+      const id = String(value || "").trim();
+      if (!id) return "";
+      // Guard against legacy double-prefix forms (hub_hub_...)
+      if (id.startsWith("hub_hub_")) return id.replace(/^hub_/, "");
+      return id;
+    };
+
     const docs = alerts
       .map((raw) => {
         const message =
@@ -255,8 +263,7 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
           typeof raw?.userEmail === "string" ? raw.userEmail.trim() : "";
         const createdAtRaw = new Date(raw?.createdAt || now);
         const createdAt = Number.isNaN(createdAtRaw.getTime()) ? now : createdAtRaw;
-        const providedClientAlertId =
-          typeof raw?.clientAlertId === "string" ? raw.clientAlertId.trim() : "";
+        const providedClientAlertId = normalizeClientAlertId(raw?.clientAlertId);
         const clientAlertId =
           providedClientAlertId ||
           makeFallbackClientAlertId({
@@ -304,8 +311,62 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
 
     const result = [];
     for (const doc of docs) {
-      // Idempotent sync: same clientAlertId updates existing instead of creating duplicates.
-      const updated = await Alert.findOneAndUpdate(
+      // First pass: strict idempotency by clientAlertId.
+      const byClientId = await Alert.findOneAndUpdate(
+        { clientAlertId: doc.clientAlertId },
+        {
+          $set: {
+            severity: doc.severity,
+            category: doc.category,
+            summary: doc.summary,
+            processingStatus: doc.processingStatus,
+            aiError: doc.aiError,
+            syncStatus: "synced",
+            updatedAt: new Date(),
+          },
+        },
+        { new: true },
+      ).lean();
+      if (byClientId) {
+        result.push(byClientId);
+        continue;
+      }
+
+      // Second pass: fingerprint + nearby timestamp to absorb legacy id mismatches.
+      const nearWindowMs = 2 * 60 * 1000;
+      const byFingerprint = await Alert.findOneAndUpdate(
+        {
+          source: "offline_hub",
+          mode: "offline",
+          rawMessage: doc.rawMessage,
+          location: doc.location,
+          auth0UserId: doc.auth0UserId ?? null,
+          userEmail: doc.userEmail || "",
+          createdAt: {
+            $gte: new Date(doc.createdAt.getTime() - nearWindowMs),
+            $lte: new Date(doc.createdAt.getTime() + nearWindowMs),
+          },
+        },
+        {
+          $set: {
+            severity: doc.severity,
+            category: doc.category,
+            summary: doc.summary,
+            processingStatus: doc.processingStatus,
+            aiError: doc.aiError,
+            syncStatus: "synced",
+            updatedAt: new Date(),
+          },
+        },
+        { new: true, sort: { updatedAt: -1 } },
+      ).lean();
+      if (byFingerprint) {
+        result.push(byFingerprint);
+        continue;
+      }
+
+      // Final pass: insert new offline-hub alert.
+      const inserted = await Alert.findOneAndUpdate(
         { clientAlertId: doc.clientAlertId },
         {
           $setOnInsert: {
@@ -331,7 +392,7 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
         },
         { upsert: true, new: true },
       ).lean();
-      result.push(updated);
+      result.push(inserted);
     }
     return res.status(201).json(result);
   } catch (err) {
