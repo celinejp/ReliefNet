@@ -46,6 +46,8 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
   bool get _online =>
       _connectivity.any((e) => e != ConnectivityResult.none);
   bool get _cloudAvailable => _online && _apiReachable;
+  int get _pendingSyncCount =>
+      _merged.where((a) => a.syncStatus == 'pending').length;
 
   @override
   void initState() {
@@ -517,6 +519,39 @@ class _AllAlertsScreenState extends State<AllAlertsScreen> {
               ],
             ),
           ),
+          if (_pendingSyncCount > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _syncInFlight ? Icons.sync_rounded : Icons.schedule_rounded,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _syncInFlight
+                            ? 'Sync in progress: $_pendingSyncCount pending alert(s).'
+                            : 'Pending alerts to sync: $_pendingSyncCount',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (_lastError != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
