@@ -1,12 +1,9 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../config/api_config.dart';
 import '../config/auth0_config.dart';
-import '../config/build_info.dart';
 import '../features/person_report/screens/person_report_form_screen.dart';
 import '../features/person_report/screens/reports_display_screen.dart';
 import '../features/volunteer/screens/donation_form_screen.dart';
@@ -17,7 +14,6 @@ import '../services/cloud_alert_api.dart';
 import '../services/pending_cloud_sync.dart';
 import '../services/session_controller.dart';
 import 'all_alerts_screen.dart';
-import 'incident_dashboard_screen.dart';
 import 'offline_alert_screen.dart';
 import 'submit_online_alert_screen.dart';
 
@@ -74,6 +70,117 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool get _dashboardEligible =>
       !Auth0Config.isConfigured || SessionController.instance.isAuthenticated;
+
+  Future<void> _openPeopleFlowSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _SheetHeader(
+                  title: 'Missing-person workflow',
+                  subtitle: 'Create reports and review grouped sightings.',
+                ),
+                ListTile(
+                  leading: const Icon(Icons.person_search_rounded),
+                  title: const Text('Report missing person'),
+                  subtitle: const Text('Submit structured details and last known info.'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PersonReportFormScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.groups_rounded),
+                  title: const Text('View person reports'),
+                  subtitle: const Text('Browse reports, groups, and likely matches.'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ReportsDisplayScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openVolunteerFlowSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _SheetHeader(
+                  title: 'Volunteer and aid workflow',
+                  subtitle: 'Collect needs, offers, donations, and run matching.',
+                ),
+                ListTile(
+                  leading: const Icon(Icons.assignment_rounded),
+                  title: const Text('Request / offer help'),
+                  subtitle: const Text('Submit needs or volunteer offers.'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const VolunteerFormScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.volunteer_activism_rounded),
+                  title: const Text('Donate supplies'),
+                  subtitle: const Text('Log donation type, amount, and location.'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const DonationFormScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.people_alt_rounded),
+                  title: const Text('Volunteer matching dashboard'),
+                  subtitle: const Text('Review needs/volunteers and run AI matching.'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const VolunteerDashboardScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,24 +300,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  'API ${ApiConfig.baseUrl}',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.45),
-                  ),
-                ),
-                if (kDebugMode) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    kBuildLabel.isEmpty
-                        ? 'DEBUG build - pass --dart-define=BUILD_LABEL=main@abc1234'
-                        : 'DEBUG build - $kBuildLabel',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFFFBBF24),
-                      height: 1.35,
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 18),
                 Text(
                   'Quick actions',
@@ -273,53 +362,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.person_search_rounded,
                   iconBackground: colorScheme.primary.withValues(alpha: 0.18),
                   iconColor: colorScheme.primary,
-                  title: 'Report missing person',
-                  subtitle: 'Capture a structured missing-person report.',
+                  title: 'Missing-person center',
+                  subtitle: 'Create reports and review grouped sightings/matches.',
                   enabled: true,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const PersonReportFormScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.groups_rounded,
-                  iconBackground: colorScheme.tertiary.withValues(alpha: 0.18),
-                  iconColor: colorScheme.tertiary,
-                  title: 'View person reports',
-                  subtitle: 'Browse grouped reports and possible matches.',
-                  enabled: true,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ReportsDisplayScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.dashboard_customize_rounded,
-                  iconBackground: colorScheme.secondary.withValues(alpha: 0.18),
-                  iconColor: colorScheme.secondary,
-                  title: 'Incident dashboard',
-                  subtitle: Auth0Config.isConfigured && !_dashboardEligible
-                      ? 'Sign in to load incidents tied to your account.'
-                      : 'Prioritized incidents from the cloud feed.',
-                  enabled: _hasNetwork && _dashboardEligible,
-                  disabledSnackText: !_hasNetwork
-                      ? null
-                      : 'Sign in from the account menu to open your dashboard.',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const IncidentDashboardScreen(),
-                      ),
-                    );
-                  },
+                  onTap: _openPeopleFlowSheet,
                 ),
                 const SizedBox(height: 12),
                 const _SectionLabel('Volunteer & Resource Workflow'),
@@ -327,48 +373,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.people_alt_rounded,
                   iconBackground: colorScheme.primary.withValues(alpha: 0.18),
                   iconColor: colorScheme.primary,
-                  title: 'Volunteer Matching',
-                  subtitle: 'Track needs, volunteers, and AI matches.',
+                  title: 'Volunteer and aid center',
+                  subtitle: 'Needs, offers, donations, and AI matching in one place.',
                   enabled: true,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const VolunteerDashboardScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.assignment_rounded,
-                  iconBackground: colorScheme.tertiary.withValues(alpha: 0.18),
-                  iconColor: colorScheme.tertiary,
-                  title: 'Request / Offer Help',
-                  subtitle: 'Create need requests or volunteer offers.',
-                  enabled: true,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const VolunteerFormScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.volunteer_activism_rounded,
-                  iconBackground: colorScheme.secondary.withValues(alpha: 0.18),
-                  iconColor: colorScheme.secondary,
-                  title: 'Donate Supplies',
-                  subtitle: 'Log supply donations for coordination.',
-                  enabled: true,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const DonationFormScreen(),
-                      ),
-                    );
-                  },
+                  onTap: _openVolunteerFlowSheet,
                 ),
                 const SizedBox(height: 28),
                 Text(
@@ -542,6 +550,41 @@ class _SectionLabel extends StatelessWidget {
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
             ),
+      ),
+    );
+  }
+}
+
+class _SheetHeader extends StatelessWidget {
+  const _SheetHeader({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.72),
+                ),
+          ),
+        ],
       ),
     );
   }
