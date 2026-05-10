@@ -124,15 +124,85 @@ class _PersonReportFormScreenState extends State<PersonReportFormScreen> {
     );
   }
 
-  Future<void> _pickPhoto() async {
+  Future<void> _pickPhoto(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 80,
     );
     if (picked != null && mounted) {
       setState(() => _photo = File(picked.path));
     }
+  }
+
+  void _showPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Add Photo',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Text('Photo helps identify the person faster',
+                style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _pickPhoto(ImageSource.camera);
+                    },
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('Take Photo'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3182CE),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _pickPhoto(ImageSource.gallery);
+                    },
+                    icon: const Icon(Icons.photo_library),
+                    label: const Text('From Gallery'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF276749),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (_photo != null) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() => _photo = null);
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.delete, color: Colors.red),
+                label: const Text('Remove Photo',
+                    style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _detectGps() async {
@@ -554,22 +624,84 @@ class _PersonReportFormScreenState extends State<PersonReportFormScreen> {
           ],
         ),
         const SizedBox(height: 18),
-        _label('Photo (optional)'),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            ElevatedButton.icon(
-              onPressed: _pickPhoto,
-              icon: const Icon(Icons.photo_library_outlined),
-              label: Text(_photo == null ? 'Upload Photo' : 'Change Photo'),
-            ),
-            const SizedBox(width: 12),
-            if (_photo != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(_photo!, width: 64, height: 64, fit: BoxFit.cover),
+        _label('Photo (optional but very helpful)'),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: _showPhotoOptions,
+          child: Container(
+            height: 130,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                color: _photo != null
+                    ? const Color(0xFF3182CE)
+                    : const Color(0xFFE2E8F0),
+                width: 2,
               ),
-          ],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: _photo != null
+                ? Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(
+                          _photo!,
+                          width: double.infinity,
+                          height: 130,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _photo = null),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('Tap to change',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 11)),
+                        ),
+                      ),
+                    ],
+                  )
+                : const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_a_photo, size: 36, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text('Tap to add photo',
+                          style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600)),
+                      SizedBox(height: 4),
+                      Text('📷 Camera  or  🖼️ Gallery',
+                          style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+          ),
         ),
       ],
     );
