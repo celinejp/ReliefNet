@@ -3,6 +3,8 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import crypto from "node:crypto";
+import path from "path";
+import { fileURLToPath } from "url";
 import { Alert } from "./models/Alert.js";
 import { categorizeIncident } from "./services/claudeCategorize.js";
 import {
@@ -10,6 +12,13 @@ import {
   optionalBearerJwt,
   requireAdmin,
 } from "./middleware/auth0Jwt.js";
+import personReportRoutes from "./routes/person-reports.js";
+import volunteerRoutes from "./routes/volunteers.js";
+import donationRoutes from "./routes/donations.js";
+import matchRoutes from "./routes/match-volunteers.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -26,10 +35,8 @@ app.get("/health", (_req, res) => {
 
 app.get("/api/alerts", optionalBearerJwt, async (req, res) => {
   try {
-    if (authConfigured()) {
-      if (!req.authUser?.sub) {
-        return res.status(401).json({ error: "Sign in required." });
-      }
+    if (authConfigured() && !req.authUser?.sub) {
+      return res.status(401).json({ error: "Sign in required." });
     }
 
     const severity =
@@ -74,10 +81,10 @@ app.get("/api/alerts", optionalBearerJwt, async (req, res) => {
     ];
 
     const alerts = await Alert.aggregate(pipeline);
-    res.json(alerts);
+    return res.json(alerts);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to list alerts." });
+    return res.status(500).json({ error: "Failed to list alerts." });
   }
 });
 
@@ -96,18 +103,18 @@ app.get("/api/alerts/:id", optionalBearerJwt, async (req, res) => {
         }
         return res.json(doc);
       }
+
       const ownerId = doc.auth0UserId ?? null;
-      const isOwner =
-        ownerId != null && ownerId === req.authUser.sub;
+      const isOwner = ownerId != null && ownerId === req.authUser.sub;
       if (!req.authUser.isAdmin && !isOwner) {
         return res.status(403).json({ error: "Not allowed to view this alert." });
       }
     }
 
-    res.json(doc);
+    return res.json(doc);
   } catch (err) {
     console.error(err);
-    res.status(400).json({ error: "Invalid id." });
+    return res.status(400).json({ error: "Invalid id." });
   }
 });
 
@@ -132,10 +139,10 @@ app.patch(
       ).lean();
 
       if (!doc) return res.status(404).json({ error: "Not found." });
-      res.json(doc);
+      return res.json(doc);
     } catch (err) {
       console.error(err);
-      res.status(400).json({ error: "Invalid id." });
+      return res.status(400).json({ error: "Invalid id." });
     }
   },
 );
@@ -245,7 +252,6 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
     const normalizeClientAlertId = (value) => {
       const id = String(value || "").trim();
       if (!id) return "";
-      // Guard against legacy double-prefix forms (hub_hub_...)
       if (id.startsWith("hub_hub_")) return id.replace(/^hub_/, "");
       return id;
     };
@@ -311,7 +317,6 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
 
     const result = [];
     for (const doc of docs) {
-      // First pass: strict idempotency by clientAlertId.
       const byClientId = await Alert.findOneAndUpdate(
         { clientAlertId: doc.clientAlertId },
         {
@@ -332,7 +337,6 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
         continue;
       }
 
-      // Second pass: fingerprint + nearby timestamp to absorb legacy id mismatches.
       const nearWindowMs = 2 * 60 * 1000;
       const byFingerprint = await Alert.findOneAndUpdate(
         {
@@ -365,7 +369,6 @@ app.post("/api/sync-alerts", optionalBearerJwt, async (req, res) => {
         continue;
       }
 
-      // Final pass: insert new offline-hub alert.
       const inserted = await Alert.findOneAndUpdate(
         { clientAlertId: doc.clientAlertId },
         {
@@ -458,6 +461,12 @@ try {
   printMongoConnectionHelp(mongoUri, err);
   process.exit(1);
 }
+
+app.use("/api/person-reports", personReportRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/api", volunteerRoutes);
+app.use("/api/donations", donationRoutes);
+app.use("/api/match-volunteers", matchRoutes);
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`ReliefNet API listening on :${port}`);

@@ -24,6 +24,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   final List<Map<String, dynamic>> _alerts = [];
   socket_io.Socket? _socket;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  _PendingOfflineAlert? _pendingAlert;
   String _status = 'Disconnected';
   String _connectionType = 'unknown';
   bool _disposing = false;
@@ -42,16 +43,13 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       final sess = SessionController.instance;
       if (!mounted) return;
       if (sess.isAuthenticated && _nameController.text.trim().isEmpty) {
-        final hint =
-            (sess.userEmail ?? sess.userSub ?? '').trim();
+        final hint = (sess.userEmail ?? sess.userSub ?? '').trim();
         if (hint.isNotEmpty) _nameController.text = hint;
       }
     });
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((statuses) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((statuses) {
       if (!_canUpdateUi) return;
-      final first =
-          statuses.isEmpty ? ConnectivityResult.none : statuses.first;
+      final first = statuses.isEmpty ? ConnectivityResult.none : statuses.first;
       _safeSetState(() {
         _connectionType = first.toString().split('.').last;
       });
@@ -63,24 +61,38 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   void dispose() {
     _disposing = true;
     _connectivitySub?.cancel();
-    _socket?.dispose();
+    _disposeSocket();
     _nameController.dispose();
     _locationController.dispose();
     _messageController.dispose();
     super.dispose();
   }
 
+  void _disposeSocket() {
+    final socket = _socket;
+    _socket = null;
+    if (socket == null) return;
+
+    socket.clearListeners();
+    socket.dispose();
+  }
+
   void _connect() {
+    if (!_canUpdateUi) return;
     if (_socket?.connected == true) return;
 
-    _socket?.dispose();
+    _disposeSocket();
+
     _socket = socket_io.io(
       _serverUrl,
       socket_io.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
+          .enableForceNew()
+          .disableMultiplex()
           .setReconnectionAttempts(5)
           .setReconnectionDelay(2000)
+          .setTimeout(5000)
           .build(),
     );
 
@@ -90,6 +102,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
         _status = 'Connected';
       });
       _socket?.emit('subscribe', {'client': 'reliefnet-app'});
+      _sendPendingAlert();
     });
 
     _socket?.onDisconnect((_) {
@@ -112,7 +125,11 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       if (data is List) {
         _safeSetState(() {
           _alerts.clear();
-          _alerts.addAll(data.cast<Map<String, dynamic>>());
+          _alerts.addAll(
+            data
+                .whereType<Map>()
+                .map((alert) => Map<String, dynamic>.from(alert)),
+          );
         });
       }
     });
@@ -126,11 +143,10 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       }
     });
 
-    _socket?.connect();
-    if (!_canUpdateUi) return;
     _safeSetState(() {
       _status = 'Connecting';
     });
+    _socket?.connect();
   }
 
   Future<void> _sendAlert() async {
@@ -143,51 +159,71 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       return;
     }
 
-    if (_socket == null || _socket?.connected != true) {
-      _showSnackbar('Connecting to hub...');
-      _connect();
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _sendAlert();
-      });
-      return;
-    }
-
     final sess = SessionController.instance;
+    final now = DateTime.now();
+    final stableId = 'hub_${now.millisecondsSinceEpoch}_${message.hashCode}';
     final alert = {
+      'id': stableId,
       'reporter': name,
       'location': location,
       'message': message,
       'type': 'SOS',
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': now.toIso8601String(),
       'auth0UserId': sess.cachedReporterAuth0Id,
       'userEmail': sess.userEmail,
       'guestMode': sess.isGuest,
       'mode': 'offline',
     };
 
-    final now = DateTime.now();
-    final stableId = 'hub_${now.millisecondsSinceEpoch}_${message.hashCode}';
-    alert['id'] = stableId;
-    _socket?.emit('new-alert', alert);
-    final pending = await _localStore.readPendingHubAlerts();
-    pending.insert(
+    final pending = _PendingOfflineAlert(
+      alert: alert,
+      stableId: stableId,
+      userId: sess.cachedReporterAuth0Id,
+      userEmail: sess.userEmail,
+      message: message,
+      location: location,
+      createdAt: now,
+    );
+
+    if (_socket == null || _socket?.connected != true) {
+      _pendingAlert = pending;
+      _showSnackbar('Connecting to hub...');
+      _connect();
+      return;
+    }
+
+    await _emitAlert(pending);
+  }
+
+  Future<void> _sendPendingAlert() async {
+    final pending = _pendingAlert;
+    if (pending == null || _socket?.connected != true) return;
+
+    _pendingAlert = null;
+    await _emitAlert(pending);
+  }
+
+  Future<void> _emitAlert(_PendingOfflineAlert pending) async {
+    _socket?.emit('new-alert', pending.alert);
+    final saved = await _localStore.readPendingHubAlerts();
+    saved.insert(
       0,
       UnifiedAlert(
-        id: stableId,
-        userId: sess.cachedReporterAuth0Id,
-        userEmail: sess.userEmail,
-        message: message,
-        location: location,
+        id: pending.stableId,
+        userId: pending.userId,
+        userEmail: pending.userEmail,
+        message: pending.message,
+        location: pending.location,
         severity: null,
-        createdAt: now,
+        createdAt: pending.createdAt,
         source: 'offline_hub',
         syncStatus: 'pending',
         mode: 'offline',
-        clientAlertId: stableId,
+        clientAlertId: pending.stableId,
         isMine: true,
       ),
     );
-    await _localStore.writePendingHubAlerts(pending);
+    await _localStore.writePendingHubAlerts(saved);
     _showSnackbar('Alert sent to laptop hub.');
     _nameController.clear();
     _locationController.clear();
@@ -195,7 +231,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   }
 
   void _showSnackbar(String text) {
-    if (!mounted) return;
+    if (!_canUpdateUi) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
@@ -212,9 +248,15 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -242,12 +284,16 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
             children: [
               Text(
                 'Offline communication mode',
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Your emergency report will automatically connect to the offline hub and be recorded.',
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white70,
+                ),
               ),
               const SizedBox(height: 20),
               _statusChip('Hub status', _status),
@@ -261,14 +307,18 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _locationController,
-                decoration: const InputDecoration(labelText: 'Location / landmark'),
+                decoration: const InputDecoration(
+                  labelText: 'Location / landmark',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _messageController,
                 minLines: 3,
                 maxLines: 5,
-                decoration: const InputDecoration(labelText: 'Emergency message'),
+                decoration: const InputDecoration(
+                  labelText: 'Emergency message',
+                ),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
@@ -279,7 +329,9 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
               const SizedBox(height: 24),
               Text(
                 'Live alerts from hub',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               if (_alerts.isEmpty)
@@ -301,15 +353,35 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(alert['reporter'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text(
+                              alert['reporter'] ?? 'Unknown',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             const SizedBox(height: 6),
-                            Text(alert['message'] ?? '', style: const TextStyle(color: Colors.white70)),
+                            Text(
+                              alert['message'] ?? '',
+                              style: const TextStyle(color: Colors.white70),
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(alert['location'] ?? '', style: const TextStyle(color: Colors.white60)),
-                                Text(alert['timestamp']?.toString().split('T').first ?? '', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                Text(
+                                  alert['location'] ?? '',
+                                  style: const TextStyle(color: Colors.white60),
+                                ),
+                                Text(
+                                  alert['timestamp']
+                                          ?.toString()
+                                          .split('T')
+                                          .first ??
+                                      '',
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -324,4 +396,24 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       ),
     );
   }
+}
+
+class _PendingOfflineAlert {
+  const _PendingOfflineAlert({
+    required this.alert,
+    required this.stableId,
+    required this.userId,
+    required this.userEmail,
+    required this.message,
+    required this.location,
+    required this.createdAt,
+  });
+
+  final Map<String, dynamic> alert;
+  final String stableId;
+  final String? userId;
+  final String? userEmail;
+  final String message;
+  final String location;
+  final DateTime createdAt;
 }
