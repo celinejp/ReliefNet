@@ -19,17 +19,19 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   final List<Map<String, dynamic>> _alerts = [];
   socket_io.Socket? _socket;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  Map<String, dynamic>? _pendingAlert;
   String _status = 'Disconnected';
   String _connectionType = 'unknown';
+  bool _isDisposed = false;
+
+  bool get _isActive => mounted && !_isDisposed;
 
   @override
   void initState() {
     super.initState();
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((statuses) {
-      if (!mounted) return;
-      final first =
-          statuses.isEmpty ? ConnectivityResult.none : statuses.first;
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((statuses) {
+      if (!_isActive) return;
+      final first = statuses.isEmpty ? ConnectivityResult.none : statuses.first;
       setState(() {
         _connectionType = first.toString().split('.').last;
       });
@@ -39,45 +41,61 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _connectivitySub?.cancel();
-    _socket?.dispose();
+    _disposeSocket();
     _nameController.dispose();
     _locationController.dispose();
     _messageController.dispose();
     super.dispose();
   }
 
+  void _disposeSocket() {
+    final socket = _socket;
+    _socket = null;
+    if (socket == null) return;
+
+    socket.clearListeners();
+    socket.dispose();
+  }
+
   void _connect() {
+    if (!_isActive) return;
     if (_socket?.connected == true) return;
 
-    _socket?.dispose();
+    _disposeSocket();
+
     _socket = socket_io.io(
       _serverUrl,
       socket_io.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
+          .enableForceNew()
+          .disableMultiplex()
           .setReconnectionAttempts(5)
           .setReconnectionDelay(2000)
+          .setTimeout(5000)
           .build(),
     );
 
     _socket?.onConnect((_) {
-      if (!mounted) return;
+      if (!_isActive) return;
       setState(() {
         _status = 'Connected';
       });
       _socket?.emit('subscribe', {'client': 'reliefnet-app'});
+      _sendPendingAlert();
     });
 
     _socket?.onDisconnect((_) {
-      if (!mounted) return;
+      if (!_isActive) return;
       setState(() {
         _status = 'Disconnected';
       });
     });
 
     _socket?.onConnectError((data) {
-      if (!mounted) return;
+      if (!_isActive) return;
       setState(() {
         _status = 'Connect error';
       });
@@ -85,17 +103,21 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
     });
 
     _socket?.on('alerts', (data) {
-      if (!mounted) return;
+      if (!_isActive) return;
       if (data is List) {
         setState(() {
           _alerts.clear();
-          _alerts.addAll(data.cast<Map<String, dynamic>>());
+          _alerts.addAll(
+            data
+                .whereType<Map>()
+                .map((alert) => Map<String, dynamic>.from(alert)),
+          );
         });
       }
     });
 
     _socket?.on('alert-received', (data) {
-      if (!mounted) return;
+      if (!_isActive) return;
       if (data is Map) {
         setState(() {
           _alerts.insert(0, Map<String, dynamic>.from(data));
@@ -103,11 +125,11 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       }
     });
 
-    _socket?.connect();
-    if (!mounted) return;
+    if (!_isActive) return;
     setState(() {
       _status = 'Connecting';
     });
+    _socket?.connect();
   }
 
   void _sendAlert() {
@@ -120,13 +142,6 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       return;
     }
 
-    if (_socket == null || _socket?.connected != true) {
-      _showSnackbar('Connecting to hub...');
-      _connect();
-      Future.delayed(const Duration(milliseconds: 500), _sendAlert);
-      return;
-    }
-
     final alert = {
       'reporter': name,
       'location': location,
@@ -135,6 +150,25 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       'timestamp': DateTime.now().toIso8601String(),
     };
 
+    if (_socket == null || _socket?.connected != true) {
+      _pendingAlert = alert;
+      _showSnackbar('Connecting to hub...');
+      _connect();
+      return;
+    }
+
+    _emitAlert(alert);
+  }
+
+  void _sendPendingAlert() {
+    final alert = _pendingAlert;
+    if (alert == null || _socket?.connected != true) return;
+
+    _pendingAlert = null;
+    _emitAlert(alert);
+  }
+
+  void _emitAlert(Map<String, dynamic> alert) {
     _socket?.emit('new-alert', alert);
     _showSnackbar('Alert sent to laptop hub.');
     _nameController.clear();
@@ -143,7 +177,7 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
   }
 
   void _showSnackbar(String text) {
-    if (!mounted) return;
+    if (!_isActive) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
@@ -160,9 +194,15 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -190,12 +230,16 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
             children: [
               Text(
                 'Offline communication mode',
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Your emergency report will automatically connect to the offline hub and be recorded.',
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white70,
+                ),
               ),
               const SizedBox(height: 20),
               _statusChip('Hub status', _status),
@@ -227,7 +271,9 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
               const SizedBox(height: 24),
               Text(
                 'Live alerts from hub',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               if (_alerts.isEmpty)
@@ -249,15 +295,35 @@ class _OfflineAlertScreenState extends State<OfflineAlertScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(alert['reporter'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text(
+                              alert['reporter'] ?? 'Unknown',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             const SizedBox(height: 6),
-                            Text(alert['message'] ?? '', style: const TextStyle(color: Colors.white70)),
+                            Text(
+                              alert['message'] ?? '',
+                              style: const TextStyle(color: Colors.white70),
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(alert['location'] ?? '', style: const TextStyle(color: Colors.white60)),
-                                Text(alert['timestamp']?.toString().split('T').first ?? '', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                Text(
+                                  alert['location'] ?? '',
+                                  style: const TextStyle(color: Colors.white60),
+                                ),
+                                Text(
+                                  alert['timestamp']
+                                          ?.toString()
+                                          .split('T')
+                                          .first ??
+                                      '',
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
